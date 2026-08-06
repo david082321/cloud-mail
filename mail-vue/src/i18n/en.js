@@ -336,7 +336,20 @@ const en = {
     searchUser: 'Search by user',
     searchEmail: 'Search by Email',
     searchSender: 'Search by Sender',
-    userEmail: 'Email Address'
+    userEmail: 'Email Address',
+    loginLoading: 'Signing in...',
+    bindEmailTitle: 'Register Email Address',
+    bind: 'Bind',
+    oauthBindRequired: 'Please register and bind an email address',
+    linuxDoUsername: 'Username',
+    linuxDoTrustLevel: 'Trust Level',
+    sourceSender: 'Sender',
+    sourceEmail: 'Email',
+    justNow: 'Just now',
+    minutesAgo: '{count} min ago',
+    hoursAgo: '{count} hour ago',
+    yesterdayAt: 'Yesterday {time}',
+    dayBeforeYesterdayAt: 'The day before yesterday {time}'
 }
 
 export default en

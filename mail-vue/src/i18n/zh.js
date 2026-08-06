@@ -336,6 +336,19 @@ const zh = {
     searchUser: '搜索用户',
     searchEmail: '搜索邮箱',
     searchSender: '搜索发件人',
-    userEmail: '用户邮箱'
+    userEmail: '用户邮箱',
+    loginLoading: '登录中...',
+    bindEmailTitle: '注册邮箱',
+    bind: '绑定',
+    oauthBindRequired: '请注册并绑定一个邮箱',
+    linuxDoUsername: '用户名',
+    linuxDoTrustLevel: '等级',
+    sourceSender: '发件人',
+    sourceEmail: '邮箱',
+    justNow: '几秒前',
+    minutesAgo: '{count}分钟前',
+    hoursAgo: '{count}小时前',
+    yesterdayAt: '昨天 {time}',
+    dayBeforeYesterdayAt: '前天 {time}'
 }
 export default zh

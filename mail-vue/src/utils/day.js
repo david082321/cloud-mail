@@ -1,12 +1,15 @@
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
+import 'dayjs/locale/zh-tw'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import {useSettingStore} from "@/store/setting.js";
+import i18n from '@/i18n/index.js'
+import {toDayjsLocale} from '@/i18n/locale.js'
 const settingStore = useSettingStore();
 dayjs.extend(utc)
 dayjs.extend(timezone)
-dayjs.locale(settingStore.lang === 'en' ? 'en' : 'zh-cn')
+dayjs.locale(toDayjsLocale(settingStore.lang))
 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export function fromNow(date) {
@@ -19,9 +22,9 @@ export function fromNow(date) {
     if (settingStore.lang === 'en') {
 
         if (isToday) {
-            if (diffSeconds < 60) return `Just now`;
-            if (diffMinutes < 60) return `${diffMinutes} min ago`;
-            if (diffHours < 2) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+            if (diffSeconds < 60) return i18n.global.t('justNow');
+            if (diffMinutes < 60) return i18n.global.t('minutesAgo', {count: diffMinutes});
+            if (diffHours < 2) return i18n.global.t('hoursAgo', {count: diffHours});
             return d.format('hh:mm A');
         }
 
@@ -37,16 +40,16 @@ export function fromNow(date) {
     } else {
 
         if (isToday) {
-            if (diffSeconds < 60) return `几秒前`;
-            if (diffMinutes < 60) return `${diffMinutes}分钟前`;
-            if (diffHours >= 1 && diffHours < 2) return '1小时前';
+            if (diffSeconds < 60) return i18n.global.t('justNow');
+            if (diffMinutes < 60) return i18n.global.t('minutesAgo', {count: diffMinutes});
+            if (diffHours >= 1 && diffHours < 2) return i18n.global.t('hoursAgo', {count: 1});
             return d.format('HH:mm');
         }
         else if (now.subtract(1, 'day').isSame(d, 'day')) {
-            return `昨天 ${d.format('HH:mm')}`;
+            return i18n.global.t('yesterdayAt', {time: d.format('HH:mm')});
         }
         else if (now.subtract(2, 'day').isSame(d, 'day')) {
-            return `前天 ${d.format('HH:mm')}`;
+            return i18n.global.t('dayBeforeYesterdayAt', {time: d.format('HH:mm')});
         }
         return d.year() === now.year()
             ? d.format('M月D日')

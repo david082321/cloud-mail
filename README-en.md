@@ -47,6 +47,8 @@ With only one domain, you can create multiple different email addresses, similar
 
 - **💻 Responsive Design**: Automatically adapts to both desktop and most mobile browsers.
 
+- **🌐 Multilingual UI**: Supports Simplified Chinese, Traditional Chinese, and English with browser-language detection and a profile setting.
+
 - **📧 Email Sending**: Integrated with Resend, supporting bulk email sending and attachments.
 
 - **🛡️ Admin Features**: Admin controls for user and email management with RBAC-based access control.

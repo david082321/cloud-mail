@@ -66,6 +66,13 @@ const zh = {
 	notAdmin: '输入的邮箱不是管理员邮箱',
 	emailExistDatabase: '有邮箱已存在数据库中',
 	notConfigOss: '对象存储未配置',
+	noRegKeyCount: '注册码使用次数已耗尽',
+	notExist: '数据不存在',
+	oauthAlreadyBound: '用户已绑定邮箱',
+	resendStatusUpdateFailed: '更新邮件状态记录失败',
+	databaseNotInitialized: '数据库未初始化',
+	kvNotBound: 'KV数据库未绑定',
+	d1NotBound: 'D1数据库未绑定',
 	perms: {
 		"邮件": "邮件",
 		"邮件发送": "邮件发送",

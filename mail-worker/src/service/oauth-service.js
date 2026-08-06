@@ -5,6 +5,7 @@ import { eq, inArray } from 'drizzle-orm';
 import userService from "./user-service";
 import loginService from "./login-service";
 import cryptoUtils from "../utils/crypto-utils";
+import {t} from '../i18n/i18n.js';
 
 const oauthService = {
 
@@ -17,7 +18,7 @@ const oauthService = {
 		let userRow = await userService.selectByIdIncludeDel(c, oauthRow.userId);
 
 		if (userRow) {
-			throw new BizError('用户已绑定有邮箱')
+			throw new BizError(t('oauthAlreadyBound'))
 		}
 
 		await loginService.register(c, { email, password: cryptoUtils.genRandomPwd(), code }, true);

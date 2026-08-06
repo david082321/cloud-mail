@@ -44,7 +44,7 @@
             </div>
           </template>
         </el-input>
-        <el-select v-model="params.type" placeholder="Select" class="status-select" @change="typeSelectChange">
+        <el-select v-model="params.type" :placeholder="$t('select')" class="status-select" @change="typeSelectChange">
           <el-option key="1" :label="$t('all')" value="all"/>
           <el-option key="3" :label="$t('received')" value="receive"/>
           <el-option key="2" :label="$t('sent')" value="send"/>

@@ -31,7 +31,7 @@
                       @change="change"
                       :style="`width: ${ locale === 'en' ?  100 : 80 }px;`"
                       v-model="setting.regKey"
-                      placeholder="Select"
+                      :placeholder="$t('select')"
                   >
                     <el-option
                         v-for="item in regKeyOptions"
@@ -146,7 +146,7 @@
                       @change="change"
                       :style="`width: ${ locale === 'en' ? 100 : 80 }px;`"
                       v-model="setting.autoRefresh"
-                      placeholder="Select"
+                      :placeholder="$t('select')"
                   >
                     <el-option
                         v-for="item in authRefreshOptions"
@@ -292,7 +292,7 @@
                       @change="change"
                       :style="`width: ${ locale === 'en' ? 100 : 80 }px;`"
                       v-model="setting.registerVerify"
-                      placeholder="Select"
+                      :placeholder="$t('select')"
                       class="bot-verify-select"
                   >
                     <el-option key="1" :value="0" :label="$t('enable')"/>
@@ -311,7 +311,7 @@
                       @change="change"
                       :style="`width: ${ locale === 'en' ? 100 : 80 }px;`"
                       v-model="setting.addEmailVerify"
-                      placeholder="Select"
+                      :placeholder="$t('select')"
                       class="bot-verify-select"
                   >
                     <el-option key="1" :value="0" :label="$t('enable')"/>
@@ -448,7 +448,7 @@
       </el-dialog>
       <el-dialog v-model="resendTokenFormShow" :title="$t('resendToken')" width="340" @closed="cleanResendTokenForm">
         <form>
-          <el-select style="margin-bottom: 15px" v-model="resendTokenForm.domain" placeholder="Select">
+          <el-select style="margin-bottom: 15px" v-model="resendTokenForm.domain" :placeholder="$t('select')">
             <el-option
                 v-for="item in settingStore.domainList"
                 :key="item"

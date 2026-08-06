@@ -1,27 +1,42 @@
 import i18next from 'i18next';
 import zh from './zh.js'
+import zhTW from './zh-TW.js'
 import en from './en.js'
-import app from '../hono/hono';
 
-app.use('*', async (c, next) => {
-	const lang = c.req.header('accept-language')?.split('-')[0]
-	i18next.init({
-		lng: lang,
-	});
+export function normalizeLocale(locale) {
+    if (!locale) return 'zh-CN'
+
+    const normalized = locale.split(',')[0].trim().replace('_', '-').toLowerCase()
+    if (normalized === 'zh') return 'zh-CN'
+    if (normalized.startsWith('zh-')) {
+        return /(?:^|-)(?:tw|hk|mo|hant)(?:-|$)/.test(normalized) ? 'zh-TW' : 'zh-CN'
+    }
+    return normalized.startsWith('en') ? 'en' : 'zh-CN'
+}
+
+export async function i18nMiddleware(c, next) {
+	const lang = normalizeLocale(c.req.header('accept-language'))
+	c.set('locale', lang)
+	await i18next.changeLanguage(lang)
 	return await next()
-})
+}
 
 const resources = {
 	en: {
 		translation: en
 	},
-	zh: {
+	'zh-CN': {
 		translation: zh,
+	},
+	'zh-TW': {
+		translation: zhTW,
 	},
 };
 
-i18next.init({
-	fallbackLng: 'zh',
+await i18next.init({
+	lng: 'zh-CN',
+	fallbackLng: 'zh-CN',
+	supportedLngs: ['zh-CN', 'zh-TW', 'en'],
 	resources,
 });
 

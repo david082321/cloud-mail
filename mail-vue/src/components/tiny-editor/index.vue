@@ -11,6 +11,7 @@ import loading from "@/components/loading/index.vue";
 import {useI18n} from 'vue-i18n'
 import {useUiStore} from '@/store/ui.js'
 import {useSettingStore} from '@/store/setting.js'
+import {toTinyMceLocale} from '@/i18n/locale.js'
 
 defineExpose({
   clearEditor,
@@ -59,11 +60,7 @@ watch(() => [uiStore.dark, settingStore.lang], () => {
 });
 
 const language = computed(() => {
-  if (locale.value === 'zh') {
-    return 'zh_CN'
-  }
-
-  return 'en'
+  return toTinyMceLocale(locale.value)
 })
 
 function clearEditor() {
