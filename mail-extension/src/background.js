@@ -51,6 +51,8 @@ export async function synchronize({ notify = true } = {}) {
 }
 
 async function initializeSession() {
+  const session = await getSession();
+  if (!session) return { connected: false };
   await synchronize({ notify: false });
   const push = await subscribeToPush(self.registration);
   return push;

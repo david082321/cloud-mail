@@ -24,7 +24,7 @@
    pnpm wrangler secret put VAPID_PRIVATE_KEY
    ```
 
-4. 部署 Worker 後執行既有 `/api/init/{jwt_secret}` 初始化流程，建立 `extension_device` 與 `extension_push_subscription` 表。
+4. GitHub Actions 部署會直接對遠端 D1 套用 `mail-worker/migrations`；手動部署仍須執行既有 `/api/init/{jwt_secret}` 初始化流程。
 
 ## 本機安裝
 

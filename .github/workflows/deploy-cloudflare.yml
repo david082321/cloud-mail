@@ -4,6 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
+      - ".github/workflows/deploy-cloudflare.yml"
       - "mail-worker/**"
       - "mail-vue/**"
   workflow_dispatch:
@@ -254,6 +255,10 @@ jobs:
           
           echo "worker_url=$WORKER_URL" >> $GITHUB_OUTPUT
           echo "✅ Setup completed."
+
+      - name: 🗃️ 套用远端 D1 迁移 / Apply remote D1 migrations
+        working-directory: ./mail-worker
+        run: pnpm wrangler d1 migrations apply db --remote -c wrangler-action.toml
 
       - name: 🔔 设置 Web Push 私钥 / Configure Web Push secret
         if: ${{ env.VAPID_PUBLIC_KEY != '' && env.VAPID_PRIVATE_KEY != '' && env.VAPID_SUBJECT != '' }}

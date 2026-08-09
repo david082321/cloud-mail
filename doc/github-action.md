@@ -37,7 +37,7 @@
 2. 复制到 GitHub Secrets 中的 `CLOUDFLARE_ACCOUNT_ID`
 
 **运行工作流**
-1. 然后在Action页面手动运行工作流，后续同步上游后会自动部署到 Cloudflare Workers。如未配置 `INIT_URL`，则需要手动访问 `https://你的项目域名/api/init/你的jwt_secret` 进行数据库初始化。
+1. 然后在Action页面手动运行工作流，后续同步上游后会自动部署到 Cloudflare Workers。部署后会通过 Wrangler 直接对配置的远端 D1 套用 `mail-worker/migrations`，再执行既有的 Worker 初始化流程。
 2. 自动同步上游可使用bot或者手动点击Sync Upstream按钮。
 
 ---
