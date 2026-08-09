@@ -1,0 +1,21 @@
+name = "cloud-mail-extension-test"
+main = "src/index.js"
+compatibility_date = "2025-06-04"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "db"
+database_name = "extension-test"
+database_id = "00000000-0000-0000-0000-000000000001"
+
+[[kv_namespaces]]
+binding = "kv"
+id = "00000000000000000000000000000001"
+
+[vars]
+ai_model = ""
+analysis_cache = false
+orm_log = false
+domain = ["example.com"]
+admin = "admin@example.com"
+jwt_secret = "extension-integration-test-secret"
