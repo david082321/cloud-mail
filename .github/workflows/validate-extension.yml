@@ -1,0 +1,90 @@
+name: 🧩 Validate Chrome extension
+
+on:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "extension-v*"
+  pull_request: {}
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.package.outputs.version }}
+      archive_name: ${{ steps.package.outputs.archive_name }}
+    defaults:
+      run:
+        working-directory: ./mail-extension
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate Manifest V3 package
+        run: node scripts/validate.mjs
+      - name: Run extension tests
+        run: node --test test/api.test.js test/package.test.js
+      - name: Build runtime-only package
+        id: package
+        run: node scripts/package.mjs
+      - name: Create ZIP archive
+        shell: bash
+        run: |
+          cd dist/package
+          zip -r "../${{ steps.package.outputs.archive_name }}.zip" .
+      - name: Verify ZIP archive
+        shell: bash
+        run: |
+          archive="dist/${{ steps.package.outputs.archive_name }}.zip"
+          unzip -t "$archive"
+          test "$(unzip -Z1 "$archive" | grep -c '^manifest.json$')" -eq 1
+          test "$(unzip -Z1 "$archive" | grep -Ec '^(test|scripts)/|^(README\.md|package\.json)$')" -eq 0
+      - name: Upload extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.archive_name }}
+          path: mail-extension/dist/${{ steps.package.outputs.archive_name }}.zip
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/extension-v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Verify tag matches manifest version
+        shell: bash
+        env:
+          EXPECTED_TAG: extension-v${{ needs.build.outputs.version }}
+        run: |
+          if [[ "$GITHUB_REF_NAME" != "$EXPECTED_TAG" ]]; then
+            echo "Tag $GITHUB_REF_NAME does not match manifest version $EXPECTED_TAG." >&2
+            exit 1
+          fi
+      - name: Download extension artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.archive_name }}
+          path: release
+      - name: Create or update GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ARCHIVE: release/${{ needs.build.outputs.archive_name }}.zip
+          RELEASE_TITLE: Cloud Mail Chrome Extension v${{ needs.build.outputs.version }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$ARCHIVE" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$ARCHIVE" \
+              --title "$RELEASE_TITLE" \
+              --generate-notes
+          fi

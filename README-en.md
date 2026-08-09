@@ -57,6 +57,8 @@ With only one domain, you can create multiple different email addresses, similar
 
 - **🔔 Email Push**: Forward received emails to Telegram bots or other email providers.
 
+- **🧩 Chrome Extension**: Browse multiple mailboxes, show unread badges, receive real-time Web Push notifications, and send messages.
+
 - **📡 Open API**: Supports batch user creation via API and multi-condition email queries
 
 - **🔢 Verification Code Recognition**: Auto-detect codes via Workers AI
@@ -131,7 +133,8 @@ cloud-mail
 │   │   ├── main.js			    # Entry JS file
 │   │   └── style.css			# Global styles
 │   ├── package.json			# Project dependencies
-└── └── env.release				# Environment configuration
+│   └── env.release				# Environment configuration
+└── mail-extension				# Chrome Manifest V3 extension
 
 ```
 

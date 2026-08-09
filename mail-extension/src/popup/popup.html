@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Cloud Mail</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="shell">
+    <section id="login-view" class="view hidden">
+      <header class="brand">
+        <img src="../../icons/icon48.png" alt="">
+        <div>
+          <h1 data-i18n="extensionName">Cloud Mail 通知</h1>
+          <p data-i18n="connectDescription">連結您的 Cloud Mail 服務</p>
+        </div>
+      </header>
+      <form id="login-form" class="stack">
+        <label><span data-i18n="serverUrl">服務網址</span><input id="server-url" type="url" placeholder="https://mail.example.com" required></label>
+        <label><span data-i18n="email">電子郵件</span><input id="login-email" type="email" autocomplete="username" required></label>
+        <label><span data-i18n="password">密碼</span><input id="login-password" type="password" autocomplete="current-password" required></label>
+        <label><span data-i18n="deviceName">裝置名稱</span><input id="device-name" maxlength="80" value="Chrome"></label>
+        <label class="checkbox"><input id="allow-send" type="checkbox" checked><span data-i18n="allowSend">允許從擴充功能寄信</span></label>
+        <button class="primary" type="submit" data-i18n="connect">連結帳號</button>
+      </form>
+    </section>
+
+    <section id="app-view" class="view hidden">
+      <header class="app-header">
+        <div>
+          <strong id="profile-email"></strong>
+          <small id="connection-status" data-i18n="connected">已連線</small>
+        </div>
+        <button id="refresh-button" class="icon-button" type="button" title="Refresh">↻</button>
+      </header>
+
+      <nav class="tabs" aria-label="Sections">
+        <button class="tab active" data-tab="inbox" data-i18n="inbox">收件匣</button>
+        <button class="tab" data-tab="compose" data-i18n="compose">撰寫</button>
+        <button class="tab" data-tab="devices" data-i18n="devices">裝置</button>
+      </nav>
+
+      <section id="inbox-panel" class="panel">
+        <div class="toolbar">
+          <select id="account-select" aria-label="Mailbox"></select>
+          <button id="open-web" class="secondary" type="button" data-i18n="openWeb">開啟網頁版</button>
+        </div>
+        <div id="mail-list" class="mail-list"></div>
+        <div id="mail-empty" class="empty hidden" data-i18n="noMail">目前沒有郵件</div>
+      </section>
+
+      <section id="detail-panel" class="panel hidden">
+        <button id="detail-back" class="back" type="button" data-i18n="back">返回</button>
+        <article class="detail">
+          <h2 id="detail-subject"></h2>
+          <div id="detail-sender" class="detail-meta"></div>
+          <div id="detail-mailbox" class="detail-meta"></div>
+          <div id="detail-time" class="detail-meta"></div>
+          <pre id="detail-text"></pre>
+        </article>
+      </section>
+
+      <section id="compose-panel" class="panel hidden">
+        <form id="compose-form" class="stack">
+          <label><span data-i18n="fromMailbox">寄件信箱</span><select id="compose-account" required></select></label>
+          <label><span data-i18n="recipients">收件人</span><input id="compose-to" type="text" placeholder="a@example.com, b@example.com" required></label>
+          <label><span data-i18n="subject">主旨</span><input id="compose-subject" maxlength="500"></label>
+          <label><span data-i18n="message">內容</span><textarea id="compose-text" rows="9" maxlength="100000"></textarea></label>
+          <button class="primary" type="submit" data-i18n="send">寄出</button>
+        </form>
+      </section>
+
+      <section id="devices-panel" class="panel hidden">
+        <div class="setting-row"><span data-i18n="pushStatus">即時推播</span><strong id="push-status">—</strong></div>
+        <div id="device-list" class="device-list"></div>
+        <button id="logout-button" class="danger" type="button" data-i18n="disconnect">中斷這台裝置</button>
+      </section>
+    </section>
+
+    <div id="status" class="status hidden" role="status"></div>
+  </main>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 name = "cloud-mail-dev"
 main = "src/index.js"
 compatibility_date = "2025-06-04"
+compatibility_flags = ["nodejs_compat"]
 keep_vars = true
 
 [observability]
@@ -42,3 +43,5 @@ orm_log = false
 domain = ["example.com", "example2.com", "example3.com", "example4.com"]
 admin = "admin@example.com"
 jwt_secret = "b7f29a1d-18e2-4d3b-941f-f6b2c97c02fd"
+#VAPID_PUBLIC_KEY = ""
+#VAPID_SUBJECT = "mailto:admin@example.com"

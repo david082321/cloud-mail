@@ -11,6 +11,7 @@ import roleService from '../service/role-service';
 import userService from '../service/user-service';
 import telegramService from '../service/telegram-service';
 import aiService from '../service/ai-service';
+import extensionPushService from '../service/extension-push-service';
 
 export async function email(message, env, ctx) {
 
@@ -145,6 +146,12 @@ export async function email(message, env, ctx) {
 		}
 
 		emailRow = await emailService.completeReceive({ env }, account ? emailConst.status.RECEIVE : emailConst.status.NOONE, emailRow.emailId);
+
+		if (emailRow.userId) {
+			ctx.waitUntil(extensionPushService.sendNewMail({ env }, emailRow).catch(error => {
+				console.error('Extension push scheduling failed:', error);
+			}));
+		}
 
 
 		if (ruleType === settingConst.ruleType.RULE) {

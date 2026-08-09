@@ -1,0 +1,11 @@
+{
+  "name": "mail-extension",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/package.mjs",
+    "test": "node --test test/api.test.js test/package.test.js",
+    "validate": "node scripts/validate.mjs"
+  }
+}

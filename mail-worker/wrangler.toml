@@ -1,6 +1,7 @@
 name = "cloud-mail"
 main = "src/index.js"
 compatibility_date = "2025-06-04"
+compatibility_flags = ["nodejs_compat"]
 keep_vars = true
 
 [observability]
@@ -42,6 +43,8 @@ crons = ["0 16 * * *"]	#每天晚上12点执行每日任务,刷新分析缓存
 #domain = []				#邮件域名可可配置多个 示例: ["example1.com","example2.com"]
 #admin = ""				#管理员的邮箱	示例: admin@example.com
 #jwt_secret = ""			#jwt令牌的密钥,随便填一串字符串
+#VAPID_PUBLIC_KEY = ""		#Chrome 扩展 Web Push 公钥
+#VAPID_SUBJECT = "mailto:admin@example.com"	#Web Push 联系方式；私钥请使用 wrangler secret
 
 [build]
 command = "pnpm --prefix ../mail-vue install && pnpm --prefix ../mail-vue run build"

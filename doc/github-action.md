@@ -17,6 +17,9 @@
 | `DOMAIN`                |  ✅  | 您要用于邮件服务的域名（例如 `["xx.xx"]，多域名用,分隔`）        |
 | `ADMIN`                 |  ✅  | 您的管理员邮箱地址（例如 `admin@example.com`）      |
 | `JWT_SECRET`            |  ✅  | 用于生成和验证 JWT 的随机长字符串                     |
+| `VAPID_PUBLIC_KEY`      |  ❌  | Chrome 扩展 Web Push 公钥；启用实时通知时必需          |
+| `VAPID_PRIVATE_KEY`     |  ❌  | Chrome 扩展 Web Push 私钥；只能保存为 GitHub Secret    |
+| `VAPID_SUBJECT`         |  ❌  | Web Push 联系方式，例如 `mailto:admin@example.com`      |
 | `INIT_URL`              |  ❌  | （可选）部署后用于初始化数据库的 Worker URL（格式参考下述手动初始化）           |
 
 ---
@@ -36,3 +39,18 @@
 **运行工作流**
 1. 然后在Action页面手动运行工作流，后续同步上游后会自动部署到 Cloudflare Workers。如未配置 `INIT_URL`，则需要手动访问 `https://你的项目域名/api/init/你的jwt_secret` 进行数据库初始化。
 2. 自动同步上游可使用bot或者手动点击Sync Upstream按钮。
+
+---
+
+**构建 Chrome 扩展**
+
+1. 分支推送时，`Validate Chrome extension` 工作流会验证、测试并构建 `cloud-mail-extension-<版本>.zip`，结果可从该次运行的 Artifacts 下载并保留 30 天。
+2. Pull Request 也会执行相同检查及构建。
+3. 若要发布正式版，请先确认 `mail-extension/manifest.json` 的 `version`，再推送完全匹配的 `extension-v<版本>` 标签。工作流会自动建立 GitHub Release，并附加相同的 ZIP；标签版本不匹配时会停止发布。
+
+例如版本为 `1.0.0`：
+
+```powershell
+git tag extension-v1.0.0
+git push origin extension-v1.0.0
+```

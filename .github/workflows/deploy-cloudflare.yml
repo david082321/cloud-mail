@@ -32,6 +32,9 @@ jobs:
       LINUXDO_CLIENT_SECRET: ${{ secrets.LINUXDO_CLIENT_SECRET || vars.LINUXDO_CLIENT_SECRET }}
       LINUXDO_CALLBACK_URL: ${{ secrets.LINUXDO_CALLBACK_URL || vars.LINUXDO_CALLBACK_URL }}
       LINUXDO_SWITCH: ${{ secrets.LINUXDO_SWITCH || vars.LINUXDO_SWITCH }}
+      VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY || vars.VAPID_PUBLIC_KEY }}
+      VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+      VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT || vars.VAPID_SUBJECT }}
 
 
     outputs:
@@ -56,6 +59,10 @@ jobs:
 
       - name: 📦 安装依赖 / Install dependencies
         run: pnpm install --frozen-lockfile
+        working-directory: ./mail-worker
+
+      - name: 🧪 验证 Chrome 扩展后端 / Validate extension backend
+        run: pnpm test:extension
         working-directory: ./mail-worker
 
       - name: 📡 禁用 Wrangler 遥测 / Disable wrangler telemetry
@@ -114,6 +121,12 @@ jobs:
           if [ -z "$CUSTOM_DOMAIN" ]; then
             sed -i '/\[\[routes\]\]/,/^$/d' "$CONFIG_FILE"
           fi
+
+          if [ -z "$VAPID_PUBLIC_KEY" ] || [ -z "$VAPID_SUBJECT" ]; then
+            sed -i '/^VAPID_PUBLIC_KEY = /d' "$CONFIG_FILE"
+            sed -i '/^VAPID_SUBJECT = /d' "$CONFIG_FILE"
+            echo "::warning::VAPID public configuration is incomplete; Chrome extension push will be disabled."
+          fi
           
           if [ "$(printf '%s' "$CLOUDFLARE_EMAIL" | tr '[:upper:]' '[:lower:]')" = "true" ]; then
             cat >> "$CONFIG_FILE" <<'EOF'
@@ -128,6 +141,8 @@ jobs:
           sed -i "s|\"\${DOMAIN}\"|${DOMAIN}|g" "$CONFIG_FILE"
           sed -i "s|\${ADMIN}|${ADMIN}|g" "$CONFIG_FILE"
           sed -i "s|\${JWT_SECRET}|${JWT_SECRET}|g" "$CONFIG_FILE"
+          sed -i "s|\${VAPID_PUBLIC_KEY}|${VAPID_PUBLIC_KEY}|g" "$CONFIG_FILE"
+          sed -i "s|\${VAPID_SUBJECT}|${VAPID_SUBJECT}|g" "$CONFIG_FILE"
           sed -i "s|\${R2_BUCKET_NAME}|${R2_BUCKET_NAME}|g" "$CONFIG_FILE"
           sed -i "s|\${PROJECT_LINK}|${PROJECT_LINK}|g" "$CONFIG_FILE"
           sed -i "s|\${ANALYSIS_CACHE}|${ANALYSIS_CACHE}|g" "$CONFIG_FILE"
@@ -239,6 +254,11 @@ jobs:
           
           echo "worker_url=$WORKER_URL" >> $GITHUB_OUTPUT
           echo "✅ Setup completed."
+
+      - name: 🔔 设置 Web Push 私钥 / Configure Web Push secret
+        if: ${{ env.VAPID_PUBLIC_KEY != '' && env.VAPID_PRIVATE_KEY != '' && env.VAPID_SUBJECT != '' }}
+        working-directory: ./mail-worker
+        run: printf '%s' "$VAPID_PRIVATE_KEY" | pnpm wrangler secret put VAPID_PRIVATE_KEY -c wrangler-action.toml
 
       - name: ♻️ 初始化数据库 / Initialize database
         run: |

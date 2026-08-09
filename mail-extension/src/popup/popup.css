@@ -1,0 +1,65 @@
+:root {
+  color-scheme: light dark;
+  font-family: Inter, "Noto Sans TC", system-ui, sans-serif;
+  background: #f6f8fb;
+  color: #172033;
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 390px; max-width: 390px; min-height: 520px; background: #f6f8fb; }
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+.shell { min-height: 520px; }
+.view { padding: 18px; }
+.hidden { display: none !important; }
+.brand { display: flex; gap: 12px; align-items: center; margin: 28px 0 24px; }
+.brand img { width: 48px; height: 48px; border-radius: 12px; }
+h1 { margin: 0; font-size: 20px; }
+.brand p { margin: 4px 0 0; color: #657089; font-size: 13px; }
+.stack { display: grid; gap: 14px; }
+label { display: grid; gap: 6px; font-size: 13px; color: #47536a; }
+input, select, textarea { width: 100%; border: 1px solid #d5dae4; border-radius: 9px; padding: 9px 10px; background: #fff; color: #172033; outline: none; }
+input:focus, select:focus, textarea:focus { border-color: #2563eb; box-shadow: 0 0 0 3px #2563eb1f; }
+textarea { resize: vertical; }
+.checkbox { display: flex; align-items: center; gap: 8px; }
+.checkbox input { width: 16px; height: 16px; }
+.primary, .secondary, .danger { border-radius: 9px; padding: 9px 12px; border: 0; }
+.primary { background: #2563eb; color: white; font-weight: 650; }
+.secondary { background: #e8eefc; color: #2453b8; }
+.danger { width: 100%; margin-top: 16px; background: #feecec; color: #b42318; }
+.app-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.app-header strong, .app-header small { display: block; }
+.app-header small { margin-top: 3px; color: #16803c; font-size: 12px; }
+.icon-button { width: 34px; height: 34px; border: 0; border-radius: 9px; background: #e9edf4; font-size: 21px; }
+.tabs { display: grid; grid-template-columns: repeat(3, 1fr); background: #e9edf4; padding: 3px; border-radius: 10px; margin-bottom: 14px; }
+.tab { border: 0; background: transparent; color: #657089; border-radius: 8px; padding: 8px; }
+.tab.active { background: #fff; color: #172033; box-shadow: 0 1px 4px #17203314; }
+.toolbar { display: flex; gap: 8px; margin-bottom: 12px; }
+.toolbar select { flex: 1; min-width: 0; }
+.toolbar .secondary { flex: none; }
+.mail-list { display: grid; gap: 8px; max-height: 412px; overflow-y: auto; }
+.mail-item { width: 100%; border: 1px solid #e0e4ec; border-radius: 10px; background: #fff; padding: 10px; text-align: left; color: inherit; }
+.mail-item.unread { border-left: 4px solid #2563eb; padding-left: 7px; }
+.mail-top { display: flex; justify-content: space-between; gap: 8px; }
+.mail-sender { font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mail-time { color: #7a8499; font-size: 11px; flex: none; }
+.mail-subject { display: block; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mail-account { display: block; color: #7a8499; font-size: 11px; margin-top: 4px; }
+.empty { text-align: center; color: #7a8499; padding: 52px 0; }
+.back { border: 0; background: transparent; color: #2563eb; padding: 0 0 12px; }
+.detail h2 { font-size: 18px; margin: 0 0 10px; overflow-wrap: anywhere; }
+.detail-meta { color: #657089; font-size: 12px; margin: 3px 0; overflow-wrap: anywhere; }
+.detail pre { margin-top: 16px; padding: 12px; border-radius: 10px; background: #fff; white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.55 inherit; max-height: 330px; overflow-y: auto; }
+.setting-row { display: flex; justify-content: space-between; padding: 12px; border-radius: 10px; background: #fff; }
+.device-list { display: grid; gap: 8px; margin-top: 12px; }
+.device { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 10px 12px; background: #fff; border: 1px solid #e0e4ec; border-radius: 10px; }
+.device small { display: block; color: #7a8499; margin-top: 3px; }
+.device button { border: 0; color: #b42318; background: transparent; }
+.status { position: fixed; left: 18px; right: 18px; bottom: 14px; padding: 10px 12px; border-radius: 9px; background: #172033; color: white; box-shadow: 0 4px 18px #0003; font-size: 13px; }
+.status.error { background: #b42318; }
+@media (prefers-color-scheme: dark) {
+  :root, body { background: #111827; color: #f3f4f6; }
+  .brand p, label, .mail-time, .mail-account, .detail-meta, .empty, .device small { color: #9ca3af; }
+  input, select, textarea, .mail-item, .detail pre, .setting-row, .device, .tab.active { background: #1f2937; color: #f3f4f6; border-color: #374151; }
+  .tabs, .icon-button { background: #283548; color: #f3f4f6; }
+  .secondary { background: #253a68; color: #bfdbfe; }
+}

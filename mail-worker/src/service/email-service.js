@@ -22,6 +22,7 @@ import domainUtils from '../utils/domain-uitls';
 import account from "../entity/account";
 import { att } from '../entity/att';
 import telegramService from './telegram-service';
+import extensionPushService from './extension-push-service';
 
 const emailService = {
 
@@ -630,6 +631,17 @@ const emailService = {
 				attValues.userId = emailRow.userId;
 				attValues.attId = null;
 				await orm(c).insert(att).values(attValues).run();
+			}
+
+			if (emailRow.userId) {
+				const pushPromise = extensionPushService.sendNewMail(c, emailRow).catch(error => {
+					console.error('Extension push scheduling failed:', error);
+				});
+				if (c.executionCtx?.waitUntil) {
+					c.executionCtx.waitUntil(pushPromise);
+				} else {
+					await pushPromise;
+				}
 			}
 
 		}

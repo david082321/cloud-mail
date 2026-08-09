@@ -62,6 +62,8 @@
 
 - **🔔 邮件推送**：接收邮件后可以转发到TG机器人或其他服务商邮箱
 
+- **🧩 Chrome 扩展**：支持多邮箱查看、未读角标、Web Push 实时来信通知与快速发信
+
 - **📡 开放API**：支持使用API批量生成用户，多条件查询邮件 
 
 - **🔢 验证码识别**：使用Workers AI，自动识别邮件验证码 
@@ -138,7 +140,8 @@ cloud-mail
 │   │   ├── main.js			    # 入口js
 │   │   └── style.css			# 全局css
 │   ├── package.json			# 项目依赖
-└── └── env.release				# 项目配置
+│   └── env.release				# 项目配置
+└── mail-extension				# Chrome Manifest V3 扩展
 ```
 
 ## 赞助
@@ -155,5 +158,4 @@ cloud-mail
 ## 交流
 
 [Telegram](https://t.me/cloud_mail_tg)
-
 

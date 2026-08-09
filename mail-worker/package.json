@@ -5,6 +5,7 @@
 	"scripts": {
 		"dev": "wrangler dev --config wrangler-dev.toml",
 		"test": "wrangler deploy --config wrangler-test.toml",
+		"test:extension": "vitest run --config vitest-extension.config.js && vitest run --config vitest-extension.integration.config.js",
 		"deploy": "wrangler deploy",
 		"start": "wrangler dev"
 	},
@@ -24,6 +25,7 @@
 		"postal-mime": "^2.4.3",
 		"resend": "^6.4.1",
 		"ua-parser-js": "^2.0.3",
-		"uuid": "^11.1.0"
+		"uuid": "^11.1.0",
+		"web-push": "^3.6.7"
 	}
 }
