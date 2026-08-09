@@ -6,6 +6,7 @@ import {
   setSyncState,
   subscribeToPush
 } from './api.js';
+import { forgetPopupWindow, openPopupWindow } from './window.js';
 
 const SYNC_ALARM = 'cloud-mail-fallback-sync';
 let syncPromise = null;
@@ -83,7 +84,15 @@ chrome.notifications.onClicked.addListener(async notificationId => {
   await chrome.notifications.clear(notificationId);
 });
 
+chrome.windows.onRemoved.addListener(windowId => {
+  forgetPopupWindow(windowId).catch(() => {});
+});
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === 'open-popup-window') {
+    openPopupWindow().then(sendResponse).catch(error => sendResponse({ error: error.message }));
+    return true;
+  }
   if (message?.type === 'session-ready') {
     initializeSession().then(sendResponse).catch(error => sendResponse({ error: error.message }));
     return true;

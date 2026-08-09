@@ -27,14 +27,14 @@ for (const locale of locales) {
   }
 }
 
-const sourceFiles = ['manifest.json', 'src/background.js', 'src/api.js', 'src/popup/popup.js', 'src/popup/popup.html'];
+const sourceFiles = ['manifest.json', 'src/background.js', 'src/window.js', 'src/api.js', 'src/popup/popup.js', 'src/popup/popup.html'];
 const usedLocaleKeys = new Set();
 for (const path of sourceFiles) {
   const source = await readFile(resolve(root, path), 'utf8');
   if (/<script[^>]+src=["']https?:/i.test(source) || /import\s+.*from\s+["']https?:/i.test(source)) {
     throw new Error(`Remote executable code is not allowed: ${path}`);
   }
-  for (const match of source.matchAll(/(?:data-i18n=["']|__MSG_|\bt\(["']|getMessage\(["'])([A-Za-z][A-Za-z0-9]*)/g)) {
+  for (const match of source.matchAll(/(?:data-i18n(?:-title)?=["']|__MSG_|\bt\(["']|getMessage\(["'])([A-Za-z][A-Za-z0-9]*)/g)) {
     usedLocaleKeys.add(match[1]);
   }
 }

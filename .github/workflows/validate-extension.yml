@@ -28,7 +28,7 @@ jobs:
       - name: Validate Manifest V3 package
         run: node scripts/validate.mjs
       - name: Run extension tests
-        run: node --test test/api.test.js test/package.test.js
+        run: node --test test/api.test.js test/package.test.js test/window.test.js
       - name: Build runtime-only package
         id: package
         run: node scripts/package.mjs

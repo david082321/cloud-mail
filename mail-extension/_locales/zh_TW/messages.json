@@ -13,6 +13,8 @@
   "compose": { "message": "撰寫" },
   "devices": { "message": "裝置" },
   "openWeb": { "message": "開啟網頁版" },
+  "openWindow": { "message": "在小視窗開啟" },
+  "openWindowFailed": { "message": "無法開啟小視窗，請重新載入擴充功能。" },
   "noMail": { "message": "目前沒有郵件" },
   "back": { "message": "返回" },
   "fromMailbox": { "message": "寄件信箱" },

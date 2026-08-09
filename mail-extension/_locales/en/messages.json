@@ -13,6 +13,8 @@
   "compose": { "message": "Compose" },
   "devices": { "message": "Devices" },
   "openWeb": { "message": "Open web app" },
+  "openWindow": { "message": "Open in small window" },
+  "openWindowFailed": { "message": "Could not open the small window. Reload the extension and try again." },
   "noMail": { "message": "No messages" },
   "back": { "message": "Back" },
   "fromMailbox": { "message": "From mailbox" },

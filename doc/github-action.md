@@ -48,9 +48,9 @@
 2. Pull Request 也会执行相同检查及构建。
 3. 若要发布正式版，请先确认 `mail-extension/manifest.json` 的 `version`，再推送完全匹配的 `extension-v<版本>` 标签。工作流会自动建立 GitHub Release，并附加相同的 ZIP；标签版本不匹配时会停止发布。
 
-例如版本为 `1.0.0`：
+例如版本为 `1.1.0`：
 
 ```powershell
-git tag extension-v1.0.0
-git push origin extension-v1.0.0
+git tag extension-v1.1.0
+git push origin extension-v1.1.0
 ```

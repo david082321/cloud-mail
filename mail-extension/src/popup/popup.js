@@ -8,6 +8,11 @@ let accounts = [];
 function localize() {
   document.documentElement.lang = chrome.i18n.getUILanguage();
   $$('[data-i18n]').forEach(element => { element.textContent = t(element.dataset.i18n); });
+  $$('[data-i18n-title]').forEach(element => {
+    const label = t(element.dataset.i18nTitle);
+    element.title = label;
+    element.setAttribute('aria-label', label);
+  });
 }
 
 function showStatus(message, error = false) {
@@ -179,6 +184,14 @@ $('#open-web').addEventListener('click', async () => {
   const session = await getSession();
   if (session) chrome.tabs.create({ url: `${session.serverUrl}/inbox` });
 });
+$$('.open-window-button').forEach(button => button.addEventListener('click', async () => {
+  try {
+    const result = await chrome.runtime.sendMessage({ type: 'open-popup-window' });
+    if (result?.error) throw new Error(result.error);
+  } catch {
+    showStatus(t('openWindowFailed'), true);
+  }
+}));
 
 $('#compose-form').addEventListener('submit', async event => {
   event.preventDefault();
@@ -217,6 +230,9 @@ $('#logout-button').addEventListener('click', async () => {
   showView(false);
 });
 
+const windowMode = new URLSearchParams(location.search).get('mode') === 'window';
+document.body.classList.toggle('window-mode', windowMode);
+$$('.open-window-button').forEach(button => button.classList.toggle('hidden', windowMode));
 localize();
 getSession().then(session => {
   if (!session) return showView(false);

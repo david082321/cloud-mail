@@ -11,10 +11,11 @@
     <section id="login-view" class="view hidden">
       <header class="brand">
         <img src="../../icons/icon48.png" alt="">
-        <div>
+        <div class="brand-copy">
           <h1 data-i18n="extensionName">Cloud Mail 通知</h1>
           <p data-i18n="connectDescription">連結您的 Cloud Mail 服務</p>
         </div>
+        <button class="icon-button open-window-button" type="button" data-i18n-title="openWindow" aria-label="Open in window">↗</button>
       </header>
       <form id="login-form" class="stack">
         <label><span data-i18n="serverUrl">服務網址</span><input id="server-url" type="url" placeholder="https://mail.example.com" required></label>
@@ -32,7 +33,10 @@
           <strong id="profile-email"></strong>
           <small id="connection-status" data-i18n="connected">已連線</small>
         </div>
-        <button id="refresh-button" class="icon-button" type="button" title="Refresh">↻</button>
+        <div class="header-actions">
+          <button class="icon-button open-window-button" type="button" data-i18n-title="openWindow" aria-label="Open in window">↗</button>
+          <button id="refresh-button" class="icon-button" type="button" title="Refresh">↻</button>
+        </div>
       </header>
 
       <nav class="tabs" aria-label="Sections">

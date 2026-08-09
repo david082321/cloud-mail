@@ -6,12 +6,15 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 390px; max-width: 390px; min-height: 520px; background: #f6f8fb; }
+body.window-mode { min-width: 320px; max-width: none; width: 100%; min-height: 100vh; }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
 .shell { min-height: 520px; }
+body.window-mode .shell { min-height: 100vh; }
 .view { padding: 18px; }
 .hidden { display: none !important; }
 .brand { display: flex; gap: 12px; align-items: center; margin: 28px 0 24px; }
+.brand-copy { flex: 1; min-width: 0; }
 .brand img { width: 48px; height: 48px; border-radius: 12px; }
 h1 { margin: 0; font-size: 20px; }
 .brand p { margin: 4px 0 0; color: #657089; font-size: 13px; }
@@ -26,9 +29,12 @@ textarea { resize: vertical; }
 .primary { background: #2563eb; color: white; font-weight: 650; }
 .secondary { background: #e8eefc; color: #2453b8; }
 .danger { width: 100%; margin-top: 16px; background: #feecec; color: #b42318; }
-.app-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.app-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.app-header > div:first-child { min-width: 0; }
+.app-header #profile-email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .app-header strong, .app-header small { display: block; }
 .app-header small { margin-top: 3px; color: #16803c; font-size: 12px; }
+.header-actions { display: flex; gap: 6px; flex: none; }
 .icon-button { width: 34px; height: 34px; border: 0; border-radius: 9px; background: #e9edf4; font-size: 21px; }
 .tabs { display: grid; grid-template-columns: repeat(3, 1fr); background: #e9edf4; padding: 3px; border-radius: 10px; margin-bottom: 14px; }
 .tab { border: 0; background: transparent; color: #657089; border-radius: 8px; padding: 8px; }

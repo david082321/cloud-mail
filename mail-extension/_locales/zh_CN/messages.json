@@ -13,6 +13,8 @@
   "compose": { "message": "撰写" },
   "devices": { "message": "设备" },
   "openWeb": { "message": "打开网页版" },
+  "openWindow": { "message": "在小窗口打开" },
+  "openWindowFailed": { "message": "无法打开小窗口，请重新加载扩展。" },
   "noMail": { "message": "目前没有邮件" },
   "back": { "message": "返回" },
   "fromMailbox": { "message": "发件邮箱" },

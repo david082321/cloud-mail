@@ -1,6 +1,6 @@
 # Cloud Mail Chrome 擴充功能
 
-`mail-extension` 是 Cloud Mail 的 Manifest V3 正式版 Chrome 擴充功能，提供多信箱瀏覽、未讀徽章、Web Push 即時通知、純文字郵件檢視、快速寄信及裝置撤銷。
+`mail-extension` 是 Cloud Mail 的 Manifest V3 正式版 Chrome 擴充功能，提供多信箱瀏覽、未讀徽章、Web Push 即時通知、純文字郵件檢視、快速寄信、裝置撤銷及可持續顯示的獨立小視窗。
 
 ## 伺服器設定
 
@@ -28,10 +28,11 @@
 
 ## 本機安裝
 
-1. 執行 `node scripts/validate.mjs`、`node --test test/api.test.js test/package.test.js` 與 `node scripts/package.mjs`。
+1. 執行 `node scripts/validate.mjs`、`node --test test/api.test.js test/package.test.js test/window.test.js` 與 `node scripts/package.mjs`。
 2. 開啟 `chrome://extensions` 並啟用「開發人員模式」。
 3. 選擇「載入未封裝項目」，指定本 `mail-extension` 資料夾。
 4. 開啟工具列圖示，輸入 Cloud Mail HTTPS 網址及帳號密碼。密碼只用於建立裝置工作階段，不會保存在擴充功能儲存空間。
+5. 按右上角的「↗」可開啟 `420 × 650` 獨立小視窗；再次按下會聚焦既有視窗。
 
 ## GitHub Actions 自動建構
 
@@ -39,11 +40,11 @@
 - ZIP 只包含 Chrome 執行時需要的 `manifest.json`、`src`、`icons` 與 `_locales`，不包含測試或開發腳本。
 - 推送 `extension-v<版本>` 標籤時，標籤版本必須和 `manifest.json` 完全相同；Actions 會建立或更新同名 GitHub Release，並附加相同 ZIP。
 
-例如 `manifest.json` 為 `1.0.0` 時：
+例如 `manifest.json` 為 `1.1.0` 時：
 
 ```powershell
-git tag extension-v1.0.0
-git push origin extension-v1.0.0
+git tag extension-v1.1.0
+git push origin extension-v1.1.0
 ```
 
 也可在 Actions 頁面手動執行 **Validate Chrome extension**，建立目前版本的 Artifact，但手動執行不會建立 GitHub Release。
