@@ -40,8 +40,16 @@ test('focuses the existing standalone popup window', async () => {
   const result = await openPopupWindow(chrome);
 
   assert.deepEqual(result, { windowId: 17, reused: true });
-  assert.deepEqual(chrome.calls.update, [{ windowId: 17, options: { focused: true } }]);
+  assert.deepEqual(chrome.calls.update, [{
+    windowId: 17,
+    options: { width: 640, height: 650, focused: true }
+  }]);
   assert.equal(chrome.calls.create.length, 0);
+});
+
+test('uses a wider standalone window for readable mail summaries', () => {
+  assert.equal(POPUP_WINDOW_OPTIONS.width, 640);
+  assert.equal(POPUP_WINDOW_OPTIONS.height, 650);
 });
 
 test('replaces a standalone window id that is no longer valid', async () => {

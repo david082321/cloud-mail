@@ -66,7 +66,11 @@ async function rawRequest(serverUrl, path, options = {}) {
   }));
 }
 
-export async function login({ serverUrl, email, password, deviceName, allowSend }) {
+export function requestedScopes({ allowSend = false, allowDelete = false } = {}) {
+  return ['mail.read', 'notification.receive', ...(allowSend ? ['mail.send'] : []), ...(allowDelete ? ['mail.delete'] : [])];
+}
+
+export async function login({ serverUrl, email, password, deviceName, allowSend, allowDelete }) {
   const normalizedUrl = normalizeServerUrl(serverUrl);
   if (!await requestServerPermission(normalizedUrl)) {
     throw new Error(chrome.i18n.getMessage('serverPermissionDenied'));
@@ -77,7 +81,7 @@ export async function login({ serverUrl, email, password, deviceName, allowSend 
       email,
       password,
       deviceName,
-      scopes: ['mail.read', 'notification.receive', ...(allowSend ? ['mail.send'] : [])]
+      scopes: requestedScopes({ allowSend, allowDelete })
     })
   });
   const session = {

@@ -41,5 +41,10 @@
   "notConfigured": { "message": "伺服器尚未設定" },
   "sendScopeUnavailable": { "message": "此裝置沒有寄信權限" },
   "refreshed": { "message": "郵件已重新整理" },
-  "sentSuccessfully": { "message": "郵件已寄出" }
+  "sentSuccessfully": { "message": "郵件已寄出" },
+  "allowDelete": { "message": "允許從擴充功能刪除信件" },
+  "deleteEmail": { "message": "刪除信件" },
+  "deleteConfirm": { "message": "確定要刪除這封信件嗎？" },
+  "deletedSuccessfully": { "message": "信件已刪除" },
+  "deleteScopeUnavailable": { "message": "此裝置沒有刪除信件權限" }
 }

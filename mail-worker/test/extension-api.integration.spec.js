@@ -44,12 +44,13 @@ describe('Chrome extension API', () => {
 				email: 'extension@example.com',
 				password: 'extension-test-password',
 				deviceName: 'Integration Chrome',
-				scopes: ['mail.read', 'mail.send', 'notification.receive']
+				scopes: ['mail.read', 'mail.send', 'mail.delete', 'notification.receive']
 			})
 		});
 		expect(login.code).toBe(200);
 		expect(login.data.scopes).toContain('mail.read');
 		expect(login.data.scopes).toContain('mail.send');
+		expect(login.data.scopes).toContain('mail.delete');
 
 		const authorization = { Authorization: `Bearer ${login.data.accessToken}` };
 		const profile = await api('/extension/profile', { headers: authorization });
@@ -73,6 +74,19 @@ describe('Chrome extension API', () => {
 		});
 		expect(read.code).toBe(200);
 
+		const deleted = await api(`/extension/emails/${emailId}`, {
+			method: 'DELETE',
+			headers: authorization
+		});
+		expect(deleted.code).toBe(200);
+
+		const syncAfterDelete = await api('/extension/sync?cursor=0&size=30', { headers: authorization });
+		expect(syncAfterDelete.data.list).toHaveLength(0);
+		expect(syncAfterDelete.data.unreadCount).toBe(0);
+
+		const missingDetail = await api(`/extension/emails/${emailId}`, { headers: authorization });
+		expect(missingDetail.code).toBe(404);
+
 		const refreshed = await api('/extension/auth/refresh', {
 			method: 'POST',
 			body: JSON.stringify({ refreshToken: login.data.refreshToken })
@@ -90,6 +104,12 @@ describe('Chrome extension API', () => {
 			})
 		});
 		expect(secondLogin.code).toBe(200);
+
+		const deleteDenied = await api(`/extension/emails/${emailId}`, {
+			method: 'DELETE',
+			headers: { Authorization: `Bearer ${secondLogin.data.accessToken}` }
+		});
+		expect(deleteDenied.code).toBe(403);
 
 		const revoke = await api(`/extension/devices/${login.data.deviceId}`, {
 			method: 'DELETE',

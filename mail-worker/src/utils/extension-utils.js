@@ -3,6 +3,7 @@ const encoder = new TextEncoder();
 export const EXTENSION_SCOPES = Object.freeze({
 	READ: 'mail.read',
 	SEND: 'mail.send',
+	DELETE: 'mail.delete',
 	NOTIFY: 'notification.receive'
 });
 

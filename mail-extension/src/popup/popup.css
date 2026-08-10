@@ -9,6 +9,7 @@ body { margin: 0; min-width: 390px; max-width: 390px; min-height: 520px; backgro
 body.window-mode { min-width: 320px; max-width: none; width: 100%; min-height: 100vh; }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .55; }
 .shell { min-height: 520px; }
 body.window-mode .shell { min-height: 100vh; }
 .view { padding: 18px; }
@@ -55,6 +56,8 @@ textarea { resize: vertical; }
 .detail h2 { font-size: 18px; margin: 0 0 10px; overflow-wrap: anywhere; }
 .detail-meta { color: #657089; font-size: 12px; margin: 3px 0; overflow-wrap: anywhere; }
 .detail pre { margin-top: 16px; padding: 12px; border-radius: 10px; background: #fff; white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.55 inherit; max-height: 330px; overflow-y: auto; }
+.detail-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+.detail-actions .danger { width: auto; margin-top: 0; }
 .setting-row { display: flex; justify-content: space-between; padding: 12px; border-radius: 10px; background: #fff; }
 .device-list { display: grid; gap: 8px; margin-top: 12px; }
 .device { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 10px 12px; background: #fff; border: 1px solid #e0e4ec; border-radius: 10px; }

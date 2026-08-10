@@ -32,12 +32,11 @@ async function getGrantedScopes(c, userRow, requestedScopes) {
 	if (!isAdmin && !permissions.includes('account:query')) {
 		throw new BizError('Mailbox access permission denied', 403);
 	}
-	if (!scopes.includes(EXTENSION_SCOPES.SEND)) return scopes;
-
-	if (!isAdmin && !permissions.includes('email:send')) {
-		return scopes.filter(scope => scope !== EXTENSION_SCOPES.SEND);
-	}
-	return scopes;
+	return scopes.filter(scope => {
+		if (scope === EXTENSION_SCOPES.SEND) return isAdmin || permissions.includes('email:send');
+		if (scope === EXTENSION_SCOPES.DELETE) return isAdmin || permissions.includes('email:delete');
+		return true;
+	});
 }
 
 async function createAccessToken(c, device) {

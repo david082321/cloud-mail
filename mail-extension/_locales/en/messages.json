@@ -41,5 +41,10 @@
   "notConfigured": { "message": "Not configured on server" },
   "sendScopeUnavailable": { "message": "This device does not have send permission" },
   "refreshed": { "message": "Messages refreshed" },
-  "sentSuccessfully": { "message": "Message sent" }
+  "sentSuccessfully": { "message": "Message sent" },
+  "allowDelete": { "message": "Allow deleting messages from the extension" },
+  "deleteEmail": { "message": "Delete message" },
+  "deleteConfirm": { "message": "Are you sure you want to delete this message?" },
+  "deletedSuccessfully": { "message": "Message deleted" },
+  "deleteScopeUnavailable": { "message": "This device does not have permission to delete messages" }
 }

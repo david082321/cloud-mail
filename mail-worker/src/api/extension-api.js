@@ -66,6 +66,14 @@ app.put('/extension/emails/read', async c => {
 	return c.json(result.ok());
 });
 
+app.delete('/extension/emails/:emailId', async c => {
+	const auth = await extensionAuthService.authenticate(c, EXTENSION_SCOPES.DELETE);
+	const emailId = Number(c.req.param('emailId'));
+	if (!Number.isSafeInteger(emailId) || emailId < 1) throw new BizError('Invalid email id', 400);
+	await extensionMailService.delete(c, auth.userId, emailId);
+	return c.json(result.ok());
+});
+
 app.post('/extension/emails/send', async c => {
 	const auth = await extensionAuthService.authenticate(c, EXTENSION_SCOPES.SEND);
 	return c.json(result.ok(await extensionMailService.send(c, auth.userId, await jsonBody(c))));

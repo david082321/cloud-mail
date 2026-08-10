@@ -2,7 +2,7 @@ const WINDOW_ID_KEY = 'cloudMailPopupWindowId';
 
 export const POPUP_WINDOW_OPTIONS = Object.freeze({
   type: 'popup',
-  width: 420,
+  width: 640,
   height: 650,
   focused: true
 });
@@ -13,7 +13,11 @@ export async function openPopupWindow(chromeApi = globalThis.chrome) {
 
   if (Number.isInteger(existingWindowId)) {
     try {
-      await chromeApi.windows.update(existingWindowId, { focused: true });
+      await chromeApi.windows.update(existingWindowId, {
+        width: POPUP_WINDOW_OPTIONS.width,
+        height: POPUP_WINDOW_OPTIONS.height,
+        focused: true
+      });
       return { windowId: existingWindowId, reused: true };
     } catch {
       await chromeApi.storage.session.remove(WINDOW_ID_KEY);

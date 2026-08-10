@@ -23,6 +23,7 @@
         <label><span data-i18n="password">密碼</span><input id="login-password" type="password" autocomplete="current-password" required></label>
         <label><span data-i18n="deviceName">裝置名稱</span><input id="device-name" maxlength="80" value="Chrome"></label>
         <label class="checkbox"><input id="allow-send" type="checkbox" checked><span data-i18n="allowSend">允許從擴充功能寄信</span></label>
+        <label class="checkbox"><input id="allow-delete" type="checkbox" checked><span data-i18n="allowDelete">允許從擴充功能刪除信件</span></label>
         <button class="primary" type="submit" data-i18n="connect">連結帳號</button>
       </form>
     </section>
@@ -62,6 +63,9 @@
           <div id="detail-mailbox" class="detail-meta"></div>
           <div id="detail-time" class="detail-meta"></div>
           <pre id="detail-text"></pre>
+          <div class="detail-actions">
+            <button id="detail-delete" class="danger" type="button" data-i18n="deleteEmail">刪除信件</button>
+          </div>
         </article>
       </section>
 

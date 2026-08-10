@@ -4,6 +4,7 @@ const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 const t = (key, substitutions) => chrome.i18n.getMessage(key, substitutions) || key;
 let accounts = [];
+let currentEmailId = null;
 
 function localize() {
   document.documentElement.lang = chrome.i18n.getUILanguage();
@@ -101,6 +102,7 @@ async function loadMail() {
 
 async function openDetail(emailId) {
   const email = await apiRequest(`/extension/emails/${emailId}`);
+  currentEmailId = email.emailId;
   $('#detail-subject').textContent = email.subject || t('noSubject');
   $('#detail-sender').textContent = `${t('from')}: ${email.name || ''} <${email.sendEmail || ''}>`;
   $('#detail-mailbox').textContent = `${t('to')}: ${email.accountEmail}`;
@@ -147,10 +149,12 @@ async function initializeApp() {
   await loadMail();
   const push = await chrome.runtime.sendMessage({ type: 'session-ready' });
   $('#push-status').textContent = push?.available ? t('enabled') : t('notConfigured');
-  if (!session.scopes.includes('mail.send')) {
-    $('[data-tab="compose"]').disabled = true;
-    $('[data-tab="compose"]').title = t('sendScopeUnavailable');
-  }
+  const canSend = session.scopes.includes('mail.send');
+  $('[data-tab="compose"]').disabled = !canSend;
+  $('[data-tab="compose"]').title = canSend ? '' : t('sendScopeUnavailable');
+  const canDelete = session.scopes.includes('mail.delete');
+  $('#detail-delete').disabled = !canDelete;
+  $('#detail-delete').title = canDelete ? '' : t('deleteScopeUnavailable');
 }
 
 $('#login-form').addEventListener('submit', async event => {
@@ -163,7 +167,8 @@ $('#login-form').addEventListener('submit', async event => {
       email: $('#login-email').value,
       password: $('#login-password').value,
       deviceName: $('#device-name').value,
-      allowSend: $('#allow-send').checked
+      allowSend: $('#allow-send').checked,
+      allowDelete: $('#allow-delete').checked
     });
     $('#login-password').value = '';
     await initializeApp();
@@ -175,6 +180,25 @@ $('#login-form').addEventListener('submit', async event => {
 });
 $$('.tab').forEach(tab => tab.addEventListener('click', () => showPanel(tab.dataset.tab)));
 $('#detail-back').addEventListener('click', () => { showPanel('inbox'); loadMail().catch(() => {}); });
+$('#detail-delete').addEventListener('click', async event => {
+  if (!currentEmailId || !confirm(t('deleteConfirm'))) return;
+  const button = event.currentTarget;
+  button.disabled = true;
+  try {
+    await apiRequest(`/extension/emails/${currentEmailId}`, { method: 'DELETE' });
+    await chrome.notifications.clear(`mail-${currentEmailId}`).catch(() => {});
+    currentEmailId = null;
+    showPanel('inbox');
+    await loadMail();
+    await chrome.runtime.sendMessage({ type: 'sync-now' }).catch(() => {});
+    showStatus(t('deletedSuccessfully'));
+  } catch (error) {
+    showStatus(error.message, true);
+  } finally {
+    const session = await getSession();
+    button.disabled = !session?.scopes.includes('mail.delete');
+  }
+});
 $('#account-select').addEventListener('change', () => loadMail().catch(error => showStatus(error.message, true)));
 $('#refresh-button').addEventListener('click', async () => {
   try { await loadMail(); await chrome.runtime.sendMessage({ type: 'sync-now' }); showStatus(t('refreshed')); }

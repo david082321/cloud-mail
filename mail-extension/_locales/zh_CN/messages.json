@@ -41,5 +41,10 @@
   "notConfigured": { "message": "服务器尚未配置" },
   "sendScopeUnavailable": { "message": "此设备没有发信权限" },
   "refreshed": { "message": "邮件已刷新" },
-  "sentSuccessfully": { "message": "邮件已发送" }
+  "sentSuccessfully": { "message": "邮件已发送" },
+  "allowDelete": { "message": "允许从扩展删除邮件" },
+  "deleteEmail": { "message": "删除邮件" },
+  "deleteConfirm": { "message": "确定要删除这封邮件吗？" },
+  "deletedSuccessfully": { "message": "邮件已删除" },
+  "deleteScopeUnavailable": { "message": "此设备没有删除邮件权限" }
 }

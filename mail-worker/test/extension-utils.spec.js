@@ -10,8 +10,9 @@ import {
 
 describe('extension utilities', () => {
 	it('normalizes scopes and always grants read and notification access', () => {
-		expect(normalizeExtensionScopes(['mail.send', 'unknown', 'mail.send'])).toEqual([
+		expect(normalizeExtensionScopes(['mail.send', 'mail.delete', 'unknown', 'mail.send'])).toEqual([
 			EXTENSION_SCOPES.SEND,
+			EXTENSION_SCOPES.DELETE,
 			EXTENSION_SCOPES.READ,
 			EXTENSION_SCOPES.NOTIFY
 		]);

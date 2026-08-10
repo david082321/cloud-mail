@@ -111,6 +111,20 @@ const extensionMailService = {
 		`).bind(emailConst.unread.READ, userId, ...ids).run();
 	},
 
+	async delete(c, userId, emailId) {
+		const userRow = await userService.selectById(c, userId);
+		const permissions = userRow.email === c.env.admin ? ['*'] : await permService.userPermKeys(c, userId);
+		if (!permissions.includes('*') && !permissions.includes('email:delete')) {
+			throw new BizError('Email deletion permission denied', 403);
+		}
+
+		const deletion = await c.env.db.prepare(`
+			UPDATE email SET is_del = ?
+			WHERE email_id = ? AND user_id = ? AND type = ? AND is_del = ?
+		`).bind(isDel.DELETE, emailId, userId, emailConst.type.RECEIVE, isDel.NORMAL).run();
+		if (deletion.meta?.changes !== 1) throw new BizError('Email not found', 404);
+	},
+
 	async send(c, userId, params) {
 		const accountId = positiveInteger(params?.accountId);
 		if (!accountId) throw new BizError('Sender mailbox is required', 400);
