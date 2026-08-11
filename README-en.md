@@ -67,7 +67,7 @@ With only one domain, you can create multiple different email addresses, similar
 
 - **🎨 Personalization**: Customize website title, login background, and transparency.
 
-- **🤖 CAPTCHA**: Integrated with Turnstile CAPTCHA to prevent automated registration.
+- **🤖 CAPTCHA**: Turnstile can independently protect sign-in, registration, and mailbox-creation flows.
 
 - **📜 More Features**: Under development...
 

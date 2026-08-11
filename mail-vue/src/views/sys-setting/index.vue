@@ -283,6 +283,22 @@
             <div class="card-title">{{ $t('turnstileSetting') }}</div>
             <div class="card-content">
               <div class="setting-item">
+                <div><span>{{ $t('loginVerification') }}</span></div>
+                <div>
+                  <el-select
+                      @change="change"
+                      :style="`width: ${ locale === 'en' ? 100 : 80 }px;`"
+                      v-model="setting.loginVerify"
+                      :placeholder="$t('select')"
+                      :disabled="setting.loginVerify !== 0 && (!setting.siteKey || !setting.secretKey)"
+                      class="bot-verify-select"
+                  >
+                    <el-option key="login-enable" :value="0" :label="$t('enable')"/>
+                    <el-option key="login-disable" :value="1" :label="$t('disable')"/>
+                  </el-select>
+                </div>
+              </div>
+              <div class="setting-item">
                 <div><span>{{ $t('signUpVerification') }}</span></div>
                 <div>
                   <el-button class="opt-button" size="small" type="primary" @click="openRegVerifyCount">

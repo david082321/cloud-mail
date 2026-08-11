@@ -41,6 +41,14 @@
           </el-input>
           <el-input v-model="form.password" :placeholder="$t('password')" type="password" autocomplete="off">
           </el-input>
+          <TurnstileWidget
+              v-if="loginVerifyEnabled"
+              ref="loginTurnstile"
+              class="login-turnstile"
+              :site-key="settingStore.settings.siteKey"
+              @verified="onLoginTurnstileVerified"
+              @error="onLoginTurnstileError"
+          />
           <el-button class="btn" type="primary" @click="submit" :loading="loginLoading"
           >{{ $t('loginBtn') }}
           </el-button>
@@ -163,6 +171,7 @@ import {loginUserInfo} from "@/request/my.js";
 import {permsToRouter} from "@/perm/perm.js";
 import {useI18n} from "vue-i18n";
 import {oauthBindUser, oauthLinuxDoLogin} from "@/request/ouath.js";
+import TurnstileWidget from "@/components/turnstile-widget/index.vue";
 
 const {t} = useI18n();
 const accountStore = useAccountStore();
@@ -174,6 +183,8 @@ const bindLoading = ref(false)
 const oauthLoading = ref(false);
 const showBindForm = ref(false);
 const show = ref('login')
+const loginTurnstile = ref(null)
+const loginVerifyToken = ref('')
 
 const bindForm = reactive({
   email: '',
@@ -238,6 +249,15 @@ const loginOpacity = computed(() => {
 })
 
 const hideLoginDomain = computed(() => settingStore.settings.loginDomain === 1)
+const loginVerifyEnabled = computed(() => settingStore.settings.loginVerify === 0)
+
+function onLoginTurnstileVerified(token) {
+  loginVerifyToken.value = token
+}
+
+function onLoginTurnstileError(error) {
+  console.warn('Turnstile login verification failed to load', error)
+}
 
 const background = computed(() => {
 
@@ -427,9 +447,20 @@ const submit = () => {
     return
   }
 
+  if (loginVerifyEnabled.value && !loginVerifyToken.value) {
+    ElMessage({
+      message: t('botVerifyMsg'),
+      type: 'error',
+      plain: true
+    })
+    return
+  }
+
   loginLoading.value = true
-  login(email, form.password).then(async () => {
+  login(email, form.password, loginVerifyToken.value).then(async () => {
     await saveSession()
+  }).catch(() => {
+    loginTurnstile.value?.reset()
   }).finally(() => {
     loginLoading.value = false
   })
@@ -767,6 +798,11 @@ function submitRegister() {
 }
 
 .register-turnstile {
+  margin-bottom: 18px;
+}
+
+.login-turnstile {
+  min-height: 65px;
   margin-bottom: 18px;
 }
 

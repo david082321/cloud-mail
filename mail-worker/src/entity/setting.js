@@ -8,6 +8,7 @@ export const setting = sqliteTable('setting', {
 	autoRefresh: integer('auto_refresh').default(0).notNull(),
 	addEmailVerify: integer('add_email_verify').default(1).notNull(),
 	registerVerify: integer('register_verify').default(1).notNull(),
+	loginVerify: integer('login_verify').default(1).notNull(),
 	regVerifyCount: integer('reg_verify_count').default(1).notNull(),
 	addVerifyCount: integer('add_verify_count').default(1).notNull(),
 	send: integer('send').default(1).notNull(),

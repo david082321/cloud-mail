@@ -99,6 +99,10 @@ export const settingConst = {
 		CLOSE: 1,
 		COUNT: 2,
 	},
+	loginVerify: {
+		OPEN: 0,
+		CLOSE: 1,
+	},
 	addEmailVerify: {
 		OPEN: 0,
 		CLOSE: 1,

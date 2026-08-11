@@ -206,12 +206,19 @@ const loginService = {
 
 		const email = String(params?.email || '').trim().toLowerCase();
 		const password = String(params?.password || '');
+		const token = String(params?.token || '');
 
 		if ((!email || !password) && !noVerifyPwd) {
 			throw new BizError(t('loginFailed'), 401);
 		}
 
-		if (!noVerifyPwd) await authRateLimitService.assertAllowed(c, email);
+		if (!noVerifyPwd) {
+			await authRateLimitService.assertAllowed(c, email);
+			const { loginVerify } = await settingService.query(c);
+			if (loginVerify === settingConst.loginVerify.OPEN) {
+				await turnstileService.verify(c, token);
+			}
+		}
 
 		const userRow = await userService.selectByEmailIncludeDel(c, email);
 		if (noVerifyPwd && !userRow) throw new BizError(t('loginFailed'), 401);

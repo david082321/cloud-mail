@@ -166,6 +166,7 @@ const en = {
     forwardAll: 'All',
     rules: 'Rules',
     turnstileSetting: 'Turnstile',
+    loginVerification: 'Sign In Verification',
     signUpVerification: 'Sign Up Verification',
     addEmailVerification: 'Add Email Verification',
     about: 'About',

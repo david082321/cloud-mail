@@ -1,8 +1,10 @@
 import { env, SELF } from 'cloudflare:test';
 import { beforeAll, describe, expect, it } from 'vitest';
 import saltHashUtils from '../src/utils/crypto-utils';
+import KvConst from '../src/const/kv-const';
 import extensionMigration from '../migrations/0001_extension_devices.sql?raw';
 import securityMigration from '../migrations/0002_security_hardening.sql?raw';
+import loginTurnstileMigration from '../migrations/0003_login_turnstile.sql?raw';
 
 async function applySql(sql) {
 	for (const statement of sql.split(/;\s*(?:\r?\n|$)/).map(value => value.trim()).filter(Boolean)) {
@@ -27,6 +29,7 @@ describe('Chrome extension API', () => {
 	beforeAll(async () => {
 		await applySql(extensionMigration);
 		await applySql(securityMigration);
+		await applySql(loginTurnstileMigration);
 
 		const { salt, hash } = await saltHashUtils.hashPassword('extension-test-password');
 		await env.db.prepare(`
@@ -180,6 +183,31 @@ describe('Chrome extension API', () => {
 		expect(logout.status).toBe(200);
 		const expired = await rawApi('/my/loginUserInfo', { headers: { Cookie: cookie } });
 		expect(expired.status).toBe(401);
+	});
+
+	it('requires a Turnstile token when browser sign-in verification is enabled', async () => {
+		await env.db.prepare(`
+			UPDATE setting
+			SET login_verify = 0, site_key = 'test-site-key', secret_key = 'test-secret-key'
+		`).run();
+		await env.kv.delete(KvConst.SETTING);
+
+		try {
+			const response = await rawApi('/login', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Accept-Language': 'en',
+					Origin: 'http://example.com'
+				},
+				body: JSON.stringify({ email: 'extension@example.com', password: 'extension-test-password' })
+			});
+			expect(response.status).toBe(400);
+			expect((await response.json()).message).toBe('Please verify that you are human');
+		} finally {
+			await env.db.prepare(`UPDATE setting SET login_verify = 1`).run();
+			await env.kv.delete(KvConst.SETTING);
+		}
 	});
 
 	it('rejects cross-origin state changes and no longer exposes the initializer', async () => {

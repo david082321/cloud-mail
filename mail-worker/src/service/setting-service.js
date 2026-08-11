@@ -1,7 +1,7 @@
 import KvConst from '../const/kv-const';
 import setting from '../entity/setting';
 import orm from '../entity/orm';
-import {verifyRecordType} from '../const/entity-const';
+import {settingConst, verifyRecordType} from '../const/entity-const';
 import fileUtils from '../utils/file-utils';
 import r2Service from './r2-service';
 import constant from '../const/constant';
@@ -78,6 +78,7 @@ const settingService = {
 		}
 
 		settingData.projectLink = projectLink;
+		settingData.loginVerify ??= settingConst.loginVerify.CLOSE;
 
 		settingData.linuxdoClientId = c.env.linuxdo_client_id;
 		settingData.linuxdoCallbackUrl = c.env.linuxdo_callback_url;
@@ -135,6 +136,12 @@ const settingService = {
 
 	async set(c, params) {
 		const settingData = await this.query(c);
+		const loginVerify = params.loginVerify ?? settingData.loginVerify;
+		const siteKey = params.siteKey ?? settingData.siteKey;
+		const secretKey = params.secretKey ?? settingData.secretKey;
+		if (loginVerify === settingConst.loginVerify.OPEN && (!siteKey || !secretKey)) {
+			throw new BizError(t('turnstileKeysRequired'));
+		}
 		let resendTokens = { ...settingData.resendTokens, ...params.resendTokens };
 		Object.keys(resendTokens).forEach(domain => {
 			if (!resendTokens[domain]) delete resendTokens[domain];
@@ -219,6 +226,7 @@ const settingService = {
 			autoRefresh: settingRow.autoRefresh,
 			addEmailVerify: settingRow.addEmailVerify,
 			registerVerify: settingRow.registerVerify,
+			loginVerify: settingRow.loginVerify,
 			send: settingRow.send,
 			r2Domain: settingRow.r2Domain,
 			siteKey: settingRow.siteKey,

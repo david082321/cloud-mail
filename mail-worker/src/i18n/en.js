@@ -54,6 +54,7 @@ const en = {
 	starNotExistEmail: 'Starred email does not exist',
 	emptyBotToken: 'Please verify that you are human',
 	botVerifyFail: 'Bot verification failed, please try again',
+	turnstileKeysRequired: 'Set the Turnstile Site Key and Secret Key before enabling sign-in verification',
 	authExpired: 'Authentication has expired. Please sign in again',
 	unauthorized: 'Unauthorized',
 	bannedSend: 'You can only send emails to internal mailboxes',
