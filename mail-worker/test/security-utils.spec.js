@@ -24,9 +24,10 @@ describe('security utilities', () => {
 	it('uses an iterated password hash and verifies legacy hashes for migration', async () => {
 		const password = 'correct horse battery staple';
 		const { salt, hash } = await cryptoUtils.hashPassword(password);
-		expect(hash).toMatch(/^pbkdf2-sha256\$600000\$/);
+		expect(hash).toMatch(/^pbkdf2-sha256\$100000\$/);
 		expect(await cryptoUtils.verifyPassword(password, salt, hash)).toBe(true);
 		expect(await cryptoUtils.verifyPassword('wrong password', salt, hash)).toBe(false);
+		expect(await cryptoUtils.verifyPassword(password, salt, 'pbkdf2-sha256$600000$invalid')).toBe(false);
 
 		const legacy = await cryptoUtils.genHashPassword(password, salt);
 		expect(await cryptoUtils.verifyPassword(password, salt, legacy)).toBe(true);

@@ -1,5 +1,6 @@
 const encoder = new TextEncoder();
-const PBKDF2_ITERATIONS = 600000;
+// Cloudflare Workers currently rejects PBKDF2 iteration counts above 100,000.
+const PBKDF2_ITERATIONS = 100000;
 const PBKDF2_PREFIX = 'pbkdf2-sha256';
 
 function toBase64(bytes) {
@@ -56,7 +57,7 @@ const saltHashUtils = {
 		if (String(storedHash).startsWith(`${PBKDF2_PREFIX}$`)) {
 			const [, iterationValue] = storedHash.split('$');
 			const iterations = Number(iterationValue);
-			if (!Number.isSafeInteger(iterations) || iterations < 100000 || iterations > 2000000) return false;
+			if (!Number.isSafeInteger(iterations) || iterations !== PBKDF2_ITERATIONS) return false;
 			const hash = await this.genPbkdf2Password(inputPassword, salt, iterations);
 			return constantTimeEqual(hash, storedHash);
 		}
