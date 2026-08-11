@@ -8,6 +8,7 @@ import oauthService from "./service/oauth-service";
 import analysisService from './service/analysis-service';
 import authRateLimitService from './service/auth-rate-limit-service';
 import resendService from './service/resend-service';
+import { buildContentSecurityPolicy, createContentSecurityPolicyNonce } from './security/content-security-policy';
 export default {
 	 async fetch(req, env, ctx) {
 
@@ -25,7 +26,8 @@ export default {
 
 		const assetResponse = await env.assets.fetch(req);
 		const response = new Response(assetResponse.body, assetResponse);
-		response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' https: data: blob:; connect-src 'self' https://api.github.com https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests");
+		const nonce = createContentSecurityPolicyNonce();
+		response.headers.set('Content-Security-Policy', buildContentSecurityPolicy(nonce));
 		response.headers.set('X-Content-Type-Options', 'nosniff');
 		response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 		response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()');

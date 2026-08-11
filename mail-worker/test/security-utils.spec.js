@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import cryptoUtils from '../src/utils/crypto-utils';
 import { escapeHtml, sanitizeEmailHtml } from '../src/utils/html-sanitizer';
 import { validateSendEmailInput } from '../src/utils/email-input-utils';
+import { buildContentSecurityPolicy, createContentSecurityPolicyNonce } from '../src/security/content-security-policy';
 
 describe('security utilities', () => {
 	it('removes executable email markup and preserves safe content', () => {
@@ -43,5 +44,20 @@ describe('security utilities', () => {
 			text: '',
 			attachments: [{ filename: 'bad.bin', content: 'not base64!' }]
 		})).toThrow();
+	});
+
+	it('uses a per-response nonce while allowing required Cloudflare scripts', () => {
+		const firstNonce = createContentSecurityPolicyNonce();
+		const secondNonce = createContentSecurityPolicyNonce();
+		const policy = buildContentSecurityPolicy(firstNonce);
+		const scriptDirective = policy.split('; ').find(value => value.startsWith('script-src '));
+
+		expect(firstNonce).toMatch(/^[0-9a-f]{32}$/);
+		expect(secondNonce).not.toBe(firstNonce);
+		expect(scriptDirective).toContain(`'nonce-${firstNonce}'`);
+		expect(scriptDirective).toContain('https://challenges.cloudflare.com');
+		expect(scriptDirective).toContain('https://static.cloudflareinsights.com');
+		expect(scriptDirective).not.toContain("'unsafe-inline'");
+		expect(policy).toContain('https://cloudflareinsights.com');
 	});
 });

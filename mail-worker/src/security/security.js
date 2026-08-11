@@ -1,13 +1,12 @@
 import BizError from '../error/biz-error';
 import constant from '../const/constant';
-import jwtUtils from '../utils/jwt-utils';
 import KvConst from '../const/kv-const';
 import dayjs from 'dayjs';
 import userService from '../service/user-service';
 import permService from '../service/perm-service';
 import { t } from '../i18n/i18n'
 import app from '../hono/hono';
-import userContext from './user-context';
+import { resolveBrowserSession } from './browser-session';
 
 const exclude = [
 	'/login',
@@ -114,24 +113,13 @@ app.use('*', async (c, next) => {
 	}
 
 
-	const jwt = userContext.getJwt(c);
+	const session = await resolveBrowserSession(c);
 
-	const result = await jwtUtils.verifyToken(c, jwt);
-
-	if (!result) {
+	if (!session) {
 		throw new BizError(t('authExpired'), 401);
 	}
 
-	const { userId, token } = result;
-	const authInfo = await c.env.kv.get(KvConst.AUTH_INFO + userId, { type: 'json' });
-
-	if (!authInfo) {
-		throw new BizError(t('authExpired'), 401);
-	}
-
-	if (!authInfo.tokens.includes(token)) {
-		throw new BizError(t('authExpired'), 401);
-	}
+	const { userId, authInfo } = session;
 
 	const permIndex = requirePerms.findIndex(item => {
 		return matchesPath(path, item);

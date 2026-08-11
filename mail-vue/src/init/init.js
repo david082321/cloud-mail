@@ -1,7 +1,7 @@
 import {useUserStore} from "@/store/user.js";
 import {useSettingStore} from "@/store/setting.js";
 import {useAccountStore} from "@/store/account.js";
-import {loginUserInfo} from "@/request/my.js";
+import {loginSession} from "@/request/login.js";
 import {permsToRouter} from "@/perm/perm.js";
 import router from "@/router";
 import {websiteConfig} from "@/request/setting.js";
@@ -22,7 +22,7 @@ export async function init() {
 
     let setting = null;
 
-    const userPromise = loginUserInfo({noMsg: true}).catch(() => null);
+    const userPromise = loginSession({noMsg: true}).catch(() => null);
     const [s, user] = await Promise.all([websiteConfig(), userPromise]);
     setting = s;
     settingStore.settings = setting;

@@ -147,6 +147,10 @@ describe('Chrome extension API', () => {
 	});
 
 	it('uses an HttpOnly browser session, authorizes attachments and revokes the exact session', async () => {
+		const anonymousSession = await rawApi('/login/session');
+		expect(anonymousSession.status).toBe(200);
+		expect((await anonymousSession.json()).data).toBeNull();
+
 		const loginResponse = await rawApi('/login', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json', Origin: 'http://example.com' },
@@ -162,6 +166,9 @@ describe('Chrome extension API', () => {
 		const profile = await rawApi('/my/loginUserInfo', { headers: { Cookie: cookie } });
 		expect(profile.status).toBe(200);
 		expect((await profile.json()).data.email).toBe('extension@example.com');
+		const activeSession = await rawApi('/login/session', { headers: { Cookie: cookie } });
+		expect(activeSession.status).toBe(200);
+		expect((await activeSession.json()).data.email).toBe('extension@example.com');
 
 		const user = await env.db.prepare(`SELECT user_id FROM user WHERE email = ?`).bind('extension@example.com').first();
 		const account = await env.db.prepare(`SELECT account_id FROM account WHERE email = ?`).bind('extension@example.com').first();
@@ -183,6 +190,9 @@ describe('Chrome extension API', () => {
 		expect(logout.status).toBe(200);
 		const expired = await rawApi('/my/loginUserInfo', { headers: { Cookie: cookie } });
 		expect(expired.status).toBe(401);
+		const endedSession = await rawApi('/login/session', { headers: { Cookie: cookie } });
+		expect(endedSession.status).toBe(200);
+		expect((await endedSession.json()).data).toBeNull();
 	});
 
 	it('requires a Turnstile token when browser sign-in verification is enabled', async () => {
