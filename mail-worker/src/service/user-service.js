@@ -56,13 +56,26 @@ const userService = {
 
 	async resetPassword(c, params, userId) {
 
-		const { password } = params;
+		const password = String(params?.password || '');
 
-		if (password.length < 6) {
+		if (password.length < 12) {
 			throw new BizError(t('pwdMinLength'));
 		}
+		if (password.length > 128) throw new BizError(t('pwdLengthLimit'));
 		const { salt, hash } = await cryptoUtils.hashPassword(password);
 		await orm(c).update(user).set({ password: hash, salt: salt }).where(eq(user.userId, userId)).run();
+		await this.revokeSessions(c, userId);
+	},
+
+	async upgradePasswordHash(c, password, userId) {
+		const { salt, hash } = await cryptoUtils.hashPassword(password);
+		await orm(c).update(user).set({ password: hash, salt }).where(eq(user.userId, userId)).run();
+	},
+
+	async revokeSessions(c, userId) {
+		await c.env.kv.delete(KvConst.AUTH_INFO + userId);
+		await c.env.db.prepare(`UPDATE extension_device SET revoked = 1 WHERE user_id = ?`).bind(userId).run();
+		await c.env.db.prepare(`DELETE FROM extension_push_subscription WHERE user_id = ?`).bind(userId).run();
 	},
 
 	selectByEmail(c, email) {
@@ -96,7 +109,7 @@ const userService = {
 
 	async delete(c, userId) {
 		await orm(c).update(user).set({ isDel: isDel.DELETE }).where(eq(user.userId, userId)).run();
-		await c.env.kv.delete(kvConst.AUTH_INFO + userId)
+		await this.revokeSessions(c, userId);
 	},
 
 	async physicsDelete(c, params) {
@@ -140,7 +153,21 @@ const userService = {
 
 
 		const query = orm(c).select({
-			...user,
+			userId: user.userId,
+			email: user.email,
+			type: user.type,
+			status: user.status,
+			createTime: user.createTime,
+			activeTime: user.activeTime,
+			createIp: user.createIp,
+			activeIp: user.activeIp,
+			os: user.os,
+			browser: user.browser,
+			device: user.device,
+			sort: user.sort,
+			sendCount: user.sendCount,
+			regKeyId: user.regKeyId,
+			isDel: user.isDel,
 			username: oauth.username,
 			trustLevel: oauth.trustLevel,
 			avatar: oauth.avatar,
@@ -250,7 +277,6 @@ const userService = {
 
 		const { password, userId } = params;
 		await this.resetPassword(c, { password }, userId);
-		await c.env.kv.delete(KvConst.AUTH_INFO + userId);
 	},
 
 	async setStatus(c, params) {
@@ -264,7 +290,7 @@ const userService = {
 			.run();
 
 		if (status === userConst.status.BAN) {
-			await c.env.kv.delete(KvConst.AUTH_INFO + userId);
+			await this.revokeSessions(c, userId);
 		}
 	},
 
@@ -310,9 +336,10 @@ const userService = {
 			throw new BizError(t('notEmailDomain'));
 		}
 
-		if (password.length < 6) {
+		if (password.length < 12) {
 			throw new BizError(t('pwdMinLength'));
 		}
+		if (password.length > 128) throw new BizError(t('pwdLengthLimit'));
 
 		const accountRow = await accountService.selectByEmailIncludeDel(c, email);
 

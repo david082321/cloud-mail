@@ -2,19 +2,17 @@ import { env, createExecutionContext, waitOnExecutionContext, SELF } from 'cloud
 import { describe, it, expect } from 'vitest';
 import worker from '../src';
 
-describe('Hello World worker', () => {
-	it('responds with Hello World! (unit style)', async () => {
-		const request = new Request('http://example.com');
-		// Create an empty context to pass to `worker.fetch()`.
+describe('worker security routing', () => {
+	it('does not expose the removed initializer (unit style)', async () => {
+		const request = new Request('http://example.com/api/init/legacy-secret');
 		const ctx = createExecutionContext();
 		const response = await worker.fetch(request, env, ctx);
-		// Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
 		await waitOnExecutionContext(ctx);
-		expect(await response.text()).toMatchInlineSnapshot(`"Hello World!"`);
+		expect([401, 404]).toContain(response.status);
 	});
 
-	it('responds with Hello World! (integration style)', async () => {
-		const response = await SELF.fetch('http://example.com');
-		expect(await response.text()).toMatchInlineSnapshot(`"Hello World!"`);
+	it('does not expose the removed initializer (integration style)', async () => {
+		const response = await SELF.fetch('http://example.com/api/init/legacy-secret');
+		expect([401, 404]).toContain(response.status);
 	});
 });

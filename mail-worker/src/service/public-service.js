@@ -1,6 +1,5 @@
 import BizError from '../error/biz-error';
 import orm from '../entity/orm';
-import { v4 as uuidv4 } from 'uuid';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import saltHashUtils from '../utils/crypto-utils';
 import cryptoUtils from '../utils/crypto-utils';
@@ -10,16 +9,20 @@ import verifyUtils from '../utils/verify-utils';
 import { t } from '../i18n/i18n';
 import reqUtils from '../utils/req-utils';
 import dayjs from 'dayjs';
-import { isDel, roleConst } from '../const/entity-const';
+import { isDel, roleConst, userConst } from '../const/entity-const';
 import email from '../entity/email';
 import userService from './user-service';
 import KvConst from '../const/kv-const';
+import authRateLimitService from './auth-rate-limit-service';
+
+const PUBLIC_TOKEN_TTL = 60 * 60;
+const MAX_IMPORT_USERS = 10;
 
 const publicService = {
 
 	async emailList(c, params) {
 
-		let { toEmail, content, subject, sendName, sendEmail, timeSort, num, size, type , isDel } = params
+		let { toEmail, content, subject, sendName, sendEmail, timeSort, num, size, type , isDel } = params || {}
 
 		const query = orm(c).select({
 				emailId: email.emailId,
@@ -43,8 +46,8 @@ const publicService = {
 			num = 1
 		}
 
-		size = Number(size);
-		num = Number(num);
+		size = Math.min(100, Math.max(1, Number(size) || 20));
+		num = Math.max(1, Number(num) || 1);
 
 		num = (num - 1) * size;
 
@@ -95,11 +98,15 @@ const publicService = {
 	},
 
 	async addUser(c, params) {
-		const { list } = params;
+		const list = params?.list;
 
+		if (!Array.isArray(list) || list.length > MAX_IMPORT_USERS) throw new BizError(t('invalidParams'));
 		if (list.length === 0) return;
 
 		for (const emailRow of list) {
+			if (!emailRow || typeof emailRow !== 'object') throw new BizError(t('invalidParams'));
+			emailRow.email = String(emailRow.email || '').trim().toLowerCase();
+			const suppliedPassword = emailRow.password == null || emailRow.password === '' ? null : String(emailRow.password);
 			if (!verifyUtils.isEmail(emailRow.email)) {
 				throw new BizError(t('notEmail'));
 			}
@@ -108,9 +115,9 @@ const publicService = {
 				throw new BizError(t('notEmailDomain'));
 			}
 
-			const { salt, hash } = await saltHashUtils.hashPassword(
-				emailRow.password || cryptoUtils.genRandomPwd()
-			);
+			if (suppliedPassword && suppliedPassword.length < 12) throw new BizError(t('pwdMinLength'));
+			if (suppliedPassword && suppliedPassword.length > 128) throw new BizError(t('pwdLengthLimit'));
+			const { salt, hash } = await saltHashUtils.hashPassword(suppliedPassword || cryptoUtils.genRandomPwd());
 
 			emailRow.salt = salt;
 			emailRow.hash = hash;
@@ -127,7 +134,8 @@ const publicService = {
 		const userList = [];
 
 		for (const emailRow of list) {
-			let { email, hash, salt, roleName } = emailRow;
+			let { email, hash, salt } = emailRow;
+			const roleName = String(emailRow.roleName || '').slice(0, 100);
 			let type = defRole.roleId;
 
 			if (roleName) {
@@ -135,14 +143,13 @@ const publicService = {
 				type = roleRow ? roleRow.roleId : type;
 			}
 
-			const userSql = `INSERT INTO user (email, password, salt, type, os, browser, active_ip, create_ip, device, active_time, create_time)
-			VALUES ('${email}', '${hash}', '${salt}', '${type}', '${os}', '${browser}', '${activeIp}', '${activeIp}', '${device}', '${activeTime}', '${activeTime}')`
-
-			const accountSql = `INSERT INTO account (email, name, user_id)
-			VALUES ('${email}', '${emailUtils.getName(email)}', 0);`;
-
-			userList.push(c.env.db.prepare(userSql));
-			userList.push(c.env.db.prepare(accountSql));
+			userList.push(c.env.db.prepare(`
+				INSERT INTO user (email, password, salt, type, os, browser, active_ip, create_ip, device, active_time, create_time)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			`).bind(email, hash, salt, type, os, browser, activeIp, activeIp, device, activeTime, activeTime));
+			userList.push(c.env.db.prepare(`
+				INSERT INTO account (email, name, user_id) VALUES (?, ?, 0)
+			`).bind(email, emailUtils.getName(email)));
 
 		}
 
@@ -164,30 +171,32 @@ const publicService = {
 
 		await this.verifyUser(c, params)
 
-		const uuid = uuidv4();
+		const uuid = crypto.randomUUID();
 
-		await c.env.kv.put(KvConst.PUBLIC_KEY, uuid);
+		await c.env.kv.put(KvConst.PUBLIC_KEY, uuid, { expirationTtl: PUBLIC_TOKEN_TTL });
 
 		return {token: uuid}
 	},
 
 	async verifyUser(c, params) {
 
-		const { email, password } = params
+		const email = String(params?.email || '').trim().toLowerCase();
+		const password = String(params?.password || '');
+		await authRateLimitService.assertAllowed(c, email);
 
 		const userRow = await userService.selectByEmailIncludeDel(c, email);
-
-		if (email !== c.env.admin) {
-			throw new BizError(t('notAdmin'));
+		let passwordValid = false;
+		if (userRow && password.length <= 128) {
+			passwordValid = await cryptoUtils.verifyPassword(password, userRow.salt, userRow.password);
+		} else {
+			await cryptoUtils.hashPassword(password.slice(0, 128) || 'invalid-password');
 		}
-
-		if (!userRow || userRow.isDel === isDel.DELETE) {
-			throw new BizError(t('notExistUser'));
+		const accountActive = userRow && userRow.isDel !== isDel.DELETE && userRow.status !== userConst.status.BAN;
+		if (email !== String(c.env.admin || '').toLowerCase() || !passwordValid || !accountActive) {
+			await authRateLimitService.recordFailure(c, email);
+			throw new BizError(t('loginFailed'), 401);
 		}
-
-		if (!await cryptoUtils.verifyPassword(password, userRow.salt, userRow.password)) {
-			throw new BizError(t('IncorrectPwd'));
-		}
+		await authRateLimitService.clear(c, email);
 	}
 
 }

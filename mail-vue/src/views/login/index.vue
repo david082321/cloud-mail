@@ -177,7 +177,7 @@ const show = ref('login')
 
 const bindForm = reactive({
   email: '',
-  oauthUserId: '',
+  bindGrant: '',
   code: ''
 })
 
@@ -261,11 +261,36 @@ const getEmailName = (email) => {
   return email.split('@')[0]
 }
 
-function linuxDoLogin() {
+const OAUTH_STATE_KEY = 'linuxdo_oauth_state'
+const OAUTH_VERIFIER_KEY = 'linuxdo_oauth_verifier'
+
+function randomBase64Url(byteLength = 32) {
+  const bytes = new Uint8Array(byteLength)
+  crypto.getRandomValues(bytes)
+  return btoa(String.fromCharCode(...bytes)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+}
+
+async function sha256Base64Url(value) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+}
+
+async function linuxDoLogin() {
   const clientId = settingStore.settings.linuxdoClientId
-  const redirectUri = encodeURIComponent(settingStore.settings.linuxdoCallbackUrl)
-  window.location.href =
-      `https://connect.linux.do/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=openid+profile+email`
+  const state = randomBase64Url()
+  const codeVerifier = randomBase64Url(48)
+  sessionStorage.setItem(OAUTH_STATE_KEY, state)
+  sessionStorage.setItem(OAUTH_VERIFIER_KEY, codeVerifier)
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: settingStore.settings.linuxdoCallbackUrl,
+    response_type: 'code',
+    scope: 'openid profile email',
+    state,
+    code_challenge: await sha256Base64Url(codeVerifier),
+    code_challenge_method: 'S256'
+  })
+  window.location.href = `https://connect.linux.do/oauth2/authorize?${params}`
 }
 
 linuxDoGetUser();
@@ -274,15 +299,28 @@ async function linuxDoGetUser() {
 
   const params = new URLSearchParams(window.location.search)
   const code = params.get('code')
+  const state = params.get('state')
+  const cleanUrl = window.location.origin + window.location.pathname
+  window.history.replaceState({}, '', cleanUrl)
 
   if (code) {
 
+    const expectedState = sessionStorage.getItem(OAUTH_STATE_KEY)
+    const codeVerifier = sessionStorage.getItem(OAUTH_VERIFIER_KEY)
+    sessionStorage.removeItem(OAUTH_STATE_KEY)
+    sessionStorage.removeItem(OAUTH_VERIFIER_KEY)
+
+    if (!state || !expectedState || state !== expectedState || !codeVerifier) {
+      ElMessage({ message: t('oauthStateInvalid'), type: 'error', plain: true })
+      return
+    }
+
     oauthLoading.value = true
-    oauthLinuxDoLogin(code).then(data => {
+    oauthLinuxDoLogin(code, codeVerifier).then(data => {
 
-      bindForm.oauthUserId = data.userInfo.oauthUserId;
+      bindForm.bindGrant = data.bindGrant;
 
-      if (!data.token) {
+      if (data.bindGrant) {
         showBindForm.value = true
         oauthLoading.value = false
         ElMessage({
@@ -294,14 +332,11 @@ async function linuxDoGetUser() {
         return;
       }
 
-      saveToken(data.token);
+      saveSession();
     }).catch(() => {
       oauthLoading.value = false
     })
   }
-
-  const cleanUrl = window.location.origin + window.location.pathname
-  window.history.replaceState({}, '', cleanUrl)
 }
 
 function bind() {
@@ -351,11 +386,11 @@ function bind() {
 
   }
 
-  const form = {email, oauthUserId: bindForm.oauthUserId, code: bindForm.code}
+  const form = {email, bindGrant: bindForm.bindGrant, code: bindForm.code}
 
   bindLoading.value = true
-  oauthBindUser(form).then(data => {
-    saveToken(data.token)
+  oauthBindUser(form).then(() => {
+    saveSession()
   }).catch(() => {
     bindLoading.value = false
   })
@@ -393,15 +428,14 @@ const submit = () => {
   }
 
   loginLoading.value = true
-  login(email, form.password).then(async data => {
-    await saveToken(data.token)
+  login(email, form.password).then(async () => {
+    await saveSession()
   }).finally(() => {
     loginLoading.value = false
   })
 }
 
-async function saveToken(token) {
-  localStorage.setItem('token', token)
+async function saveSession() {
   refreshWebsiteConfig()
   const user = await loginUserInfo();
   accountStore.currentAccountId = user.account.accountId;
@@ -473,7 +507,7 @@ function submitRegister() {
     return
   }
 
-  if (registerForm.password.length < 6) {
+  if (registerForm.password.length < 12) {
     ElMessage({
       message: t('pwdLengthMsg'),
       type: 'error',

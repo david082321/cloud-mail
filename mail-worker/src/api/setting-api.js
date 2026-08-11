@@ -2,9 +2,10 @@ import app from '../hono/hono';
 import result from '../model/result';
 import settingService from '../service/setting-service';
 import userContext from "../security/user-context";
+import { readJsonBody } from '../utils/email-input-utils';
 
 app.put('/setting/set', async (c) => {
-	await settingService.set(c, await c.req.json());
+	await settingService.set(c, await readJsonBody(c, 256 * 1024));
 	return c.json(result.ok());
 });
 
@@ -19,7 +20,7 @@ app.get('/setting/websiteConfig', async (c) => {
 })
 
 app.put('/setting/setBackground', async (c) => {
-	const key = await settingService.setBackground(c, await c.req.json());
+	const key = await settingService.setBackground(c, await readJsonBody(c, 10 * 1024 * 1024));
 	return c.json(result.ok(key));
 });
 
@@ -29,7 +30,6 @@ app.delete('/setting/deleteBackground', async (c) => {
 });
 
 app.put('/setting/setBlacklist', async (c) => {
-	const setting = await settingService.setBlacklist(c, await c.req.json());
+	const setting = await settingService.setBlacklist(c, await readJsonBody(c, 256 * 1024));
 	return c.json(result.ok(setting));
 })
-

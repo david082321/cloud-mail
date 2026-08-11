@@ -12,6 +12,8 @@ import userService from '../service/user-service';
 import telegramService from '../service/telegram-service';
 import aiService from '../service/ai-service';
 import extensionPushService from '../service/extension-push-service';
+import { sanitizeEmailHtml } from '../utils/html-sanitizer';
+import { EMAIL_LIMITS } from '../utils/email-input-utils';
 
 export async function email(message, env, ctx) {
 
@@ -102,7 +104,7 @@ export async function email(message, env, ctx) {
 			name: email.from.name || emailUtils.getName(email.from.address),
 			subject: email.subject,
 			code,
-			content: email.html,
+			content: sanitizeEmailHtml(email.html),
 			text: email.text,
 			cc: email.cc ? JSON.stringify(email.cc) : '[]',
 			bcc: email.bcc ? JSON.stringify(email.bcc) : '[]',
@@ -119,10 +121,16 @@ export async function email(message, env, ctx) {
 		const attachments = [];
 		const cidAttachments = [];
 
-		for (let item of email.attachments) {
+		let totalAttachmentBytes = 0;
+		for (let item of (email.attachments || []).slice(0, EMAIL_LIMITS.maxAttachments)) {
 			let attachment = { ...item };
-			attachment.key = constant.ATTACHMENT_PREFIX + await fileUtils.getBuffHash(attachment.content) + fileUtils.getExtFileName(item.filename);
 			attachment.size = item.content.length ?? item.content.byteLength;
+			if (attachment.size > EMAIL_LIMITS.maxAttachmentBytes || totalAttachmentBytes + attachment.size > EMAIL_LIMITS.maxTotalAttachmentBytes) {
+				console.warn('Skipped oversized incoming attachment');
+				continue;
+			}
+			totalAttachmentBytes += attachment.size;
+			attachment.key = constant.ATTACHMENT_PREFIX + crypto.randomUUID() + fileUtils.getExtFileName(item.filename).slice(0, 16);
 			attachments.push(attachment);
 			if (attachment.contentId) {
 				cidAttachments.push(attachment);

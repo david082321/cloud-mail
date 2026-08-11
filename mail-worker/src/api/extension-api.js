@@ -5,13 +5,10 @@ import extensionAuthService from '../service/extension-auth-service';
 import extensionMailService from '../service/extension-mail-service';
 import extensionPushService from '../service/extension-push-service';
 import { EXTENSION_SCOPES } from '../utils/extension-utils';
+import { readJsonBody } from '../utils/email-input-utils';
 
 async function jsonBody(c) {
-	try {
-		return await c.req.json();
-	} catch {
-		throw new BizError('Invalid JSON body', 400);
-	}
+	return readJsonBody(c, 256 * 1024);
 }
 
 app.post('/extension/auth/login', async c => {

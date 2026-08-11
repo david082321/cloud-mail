@@ -147,7 +147,6 @@ const deleteConfirm = () => {
     type: 'warning'
   }).then(() => {
     userDelete().then(() => {
-      localStorage.removeItem('token');
       router.replace('/login');
       ElMessage({
         message: t('delSuccessMsg'),
@@ -170,7 +169,7 @@ function submitPwd() {
     return
   }
 
-  if (form.password.length < 6) {
+  if (form.password.length < 12) {
     ElMessage({
       message: t('pwdLengthMsg'),
       type: 'error',
@@ -199,6 +198,8 @@ function submitPwd() {
     setPwdLoading.value = false
     form.password = ''
     form.newPwd = ''
+    userStore.user = {}
+    router.replace('/login')
   }).catch(() => {
     setPwdLoading.value = false
   })

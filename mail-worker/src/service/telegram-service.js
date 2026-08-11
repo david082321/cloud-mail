@@ -13,6 +13,12 @@ import emailTextTemplate from '../template/email-text';
 import emailHtmlTemplate from '../template/email-html';
 import verifyUtils from '../utils/verify-utils';
 import domainUtils from "../utils/domain-uitls";
+import { att } from '../entity/att';
+import { and } from 'drizzle-orm';
+import r2Service from './r2-service';
+
+const TELEGRAM_LINK_SECONDS = 7 * 24 * 60 * 60;
+const SAFE_INLINE_MIME = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
 
 const telegramService = {
 
@@ -31,8 +37,7 @@ const telegramService = {
 		if (emailRow) {
 
 			if (emailRow.content) {
-				const { r2Domain } = await settingService.query(c);
-				return emailHtmlTemplate(emailRow.content || '', r2Domain)
+				return emailHtmlTemplate(emailRow.content || '', `/api/telegram/attachment/${encodeURIComponent(token)}`)
 			} else {
 				return emailTextTemplate(emailRow.text || '')
 			}
@@ -43,13 +48,31 @@ const telegramService = {
 
 	},
 
+	async getAttachment(c, token, key) {
+		const payload = await jwtUtils.verifyToken(c, token);
+		if (!payload?.emailId || !key?.startsWith('attachments/')) return null;
+		const attachment = await orm(c).select().from(att).where(and(eq(att.emailId, payload.emailId), eq(att.key, key))).get();
+		if (!attachment || !SAFE_INLINE_MIME.has(String(attachment.mimeType || '').toLowerCase())) return null;
+		const obj = await r2Service.getObj(c, key);
+		if (!obj) return null;
+		return new Response(obj.body, {
+			headers: {
+				'Content-Type': attachment.mimeType,
+				'Cache-Control': 'private, max-age=300',
+				'Content-Security-Policy': "sandbox; default-src 'none'",
+				'X-Content-Type-Options': 'nosniff',
+				'Referrer-Policy': 'no-referrer'
+			}
+		});
+	},
+
 	async sendEmailToBot(c, email) {
 
 		const { tgBotToken, tgChatId, customDomain, tgMsgTo, tgMsgFrom, tgMsgText } = await settingService.query(c);
 
 		const tgChatIds = tgChatId.split(',');
 
-		const jwtToken = await jwtUtils.generateToken(c, { emailId: email.emailId })
+		const jwtToken = await jwtUtils.generateToken(c, { emailId: email.emailId }, TELEGRAM_LINK_SECONDS)
 
 		const webAppUrl = customDomain ? `${domainUtils.toOssDomain(customDomain)}/api/telegram/getEmail/${jwtToken}` : 'https://www.cloudflare.com/404'
 		const inlineKeyboard = [

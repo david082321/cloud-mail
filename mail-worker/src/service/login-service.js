@@ -3,7 +3,6 @@ import userService from './user-service';
 import emailUtils from '../utils/email-utils';
 import { isDel, settingConst, userConst } from '../const/entity-const';
 import JwtUtils from '../utils/jwt-utils';
-import { v4 as uuidv4 } from 'uuid';
 import KvConst from '../const/kv-const';
 import constant from '../const/constant';
 import userContext from '../security/user-context';
@@ -19,12 +18,16 @@ import dayjs from 'dayjs';
 import { toUtc } from '../utils/date-uitil';
 import { t } from '../i18n/i18n.js';
 import verifyRecordService from './verify-record-service';
+import authRateLimitService from './auth-rate-limit-service';
 
 const loginService = {
 
 	async register(c, params, oauth = false) {
 
-		const { email, password, token, code } = params;
+		const email = String(params?.email || '').trim().toLowerCase();
+		const password = String(params?.password || '');
+		const token = String(params?.token || '');
+		const code = params?.code;
 
 		let { regKey, register, registerVerify, regVerifyCount, minEmailPrefix, emailPrefixFilter } = await settingService.query(c)
 
@@ -53,11 +56,11 @@ const loginService = {
 			throw new BizError(t('emailLengthLimit'));
 		}
 
-		if (password.length > 30) {
+		if (password.length > 128) {
 			throw new BizError(t('pwdLengthLimit'));
 		}
 
-		if (password.length < 6) {
+		if (password.length < 12) {
 			throw new BizError(t('pwdMinLength'));
 		}
 
@@ -201,38 +204,42 @@ const loginService = {
 
 	async login(c, params, noVerifyPwd = false) {
 
-		const { email, password } = params;
+		const email = String(params?.email || '').trim().toLowerCase();
+		const password = String(params?.password || '');
 
 		if ((!email || !password) && !noVerifyPwd) {
-			throw new BizError(t('emailAndPwdEmpty'));
+			throw new BizError(t('loginFailed'), 401);
 		}
+
+		if (!noVerifyPwd) await authRateLimitService.assertAllowed(c, email);
 
 		const userRow = await userService.selectByEmailIncludeDel(c, email);
+		if (noVerifyPwd && !userRow) throw new BizError(t('loginFailed'), 401);
 
-		if (!userRow) {
-			throw new BizError(t('notExistUser'));
+		if (!noVerifyPwd) {
+			let passwordValid = false;
+			if (userRow && password.length <= 128) {
+				passwordValid = await cryptoUtils.verifyPassword(password, userRow.salt, userRow.password);
+			} else {
+				await cryptoUtils.hashPassword(password.slice(0, 128) || 'invalid-password');
+			}
+			const accountActive = userRow && userRow.isDel !== isDel.DELETE && userRow.status !== userConst.status.BAN;
+			if (!passwordValid || !accountActive) {
+				await authRateLimitService.recordFailure(c, email);
+				throw new BizError(t('loginFailed'), 401);
+			}
+			await authRateLimitService.clear(c, email);
+			if (cryptoUtils.needsRehash(userRow.password)) await userService.upgradePasswordHash(c, password, userRow.userId);
 		}
 
-		if(userRow.isDel === isDel.DELETE) {
-			throw new BizError(t('isDelUser'));
-		}
-
-		if(userRow.status === userConst.status.BAN) {
-			throw new BizError(t('isBanUser'));
-		}
-
-		if (!await cryptoUtils.verifyPassword(password, userRow.salt, userRow.password) && !noVerifyPwd) {
-			throw new BizError(t('IncorrectPwd'));
-		}
-
-		const uuid = uuidv4();
-		const jwt = await JwtUtils.generateToken(c,{ userId: userRow.userId, token: uuid });
+		const uuid = crypto.randomUUID();
+		const jwt = await JwtUtils.generateToken(c,{ userId: userRow.userId, token: uuid }, constant.TOKEN_EXPIRE);
 
 		let authInfo = await c.env.kv.get(KvConst.AUTH_INFO + userRow.userId, { type: 'json' });
 
 		if (authInfo && (authInfo.user.email === userRow.email)) {
 
-			if (authInfo.tokens.length > 10) {
+			if (authInfo.tokens.length >= 10) {
 				authInfo.tokens.shift();
 			}
 
@@ -240,9 +247,10 @@ const loginService = {
 
 		} else {
 
+			const { password: _password, salt: _salt, ...safeUser } = userRow;
 			authInfo = {
 				tokens: [],
-				user: userRow,
+				user: safeUser,
 				refreshTime: dayjs().toISOString()
 			};
 
@@ -257,11 +265,17 @@ const loginService = {
 	},
 
 	async logout(c, userId) {
-		const token =userContext.getToken(c);
+		const token = await userContext.getToken(c);
 		const authInfo = await c.env.kv.get(KvConst.AUTH_INFO + userId, { type: 'json' });
+		if (!authInfo || !token) return;
 		const index = authInfo.tokens.findIndex(item => item === token);
+		if (index < 0) return;
 		authInfo.tokens.splice(index, 1);
-		await c.env.kv.put(KvConst.AUTH_INFO + userId, JSON.stringify(authInfo));
+		if (!authInfo.tokens.length) {
+			await c.env.kv.delete(KvConst.AUTH_INFO + userId);
+			return;
+		}
+		await c.env.kv.put(KvConst.AUTH_INFO + userId, JSON.stringify(authInfo), { expirationTtl: constant.TOKEN_EXPIRE });
 	}
 
 };

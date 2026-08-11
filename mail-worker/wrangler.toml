@@ -45,6 +45,7 @@ crons = ["0 16 * * *"]	#每天晚上12点执行每日任务,刷新分析缓存
 #jwt_secret = ""			#jwt令牌的密钥,随便填一串字符串
 #VAPID_PUBLIC_KEY = ""		#Chrome 扩展 Web Push 公钥
 #VAPID_SUBJECT = "mailto:admin@example.com"	#Web Push 联系方式；私钥请使用 wrangler secret
+#Resend webhook 签名密钥请使用: wrangler secret put resend_webhook_secret
 
 [build]
 command = "pnpm --prefix ../mail-vue install && pnpm --prefix ../mail-vue run build"

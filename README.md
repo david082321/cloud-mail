@@ -98,6 +98,12 @@
 
 - **文件存储**：[Cloudflare R2](https://developers.cloudflare.com/r2/)
 
+## 安全配置
+
+部署前请先执行 `mail-worker/migrations` 中的 D1 migrations；应用会在首次读取时自动建立设置缓存，不再提供可由 HTTP 调用的初始化接口。
+
+若启用 Resend webhook，请在 `mail-worker` 目录执行 `pnpm wrangler secret put resend_webhook_secret`，填入 Resend webhook signing secret。未配置时 webhook 会拒绝请求，不会略过签名验证。
+
 ## 目录结构
 
 ```
@@ -112,7 +118,6 @@ cloud-mail
 │   │   ├── error			    # 自定义异常
 │   │   ├── hono			    # web框架配置、拦截器、全局异常等
 │   │   ├── i18n			    # 语言国际化
-│   │   ├── init			    # 数据库缓存初始化
 │   │   ├── model			    # 响应体数据封装
 │   │   ├── security			# 身份权限认证
 │   │   ├── service			    # 业务服务层
@@ -158,4 +163,3 @@ cloud-mail
 ## 交流
 
 [Telegram](https://t.me/cloud_mail_tg)
-

@@ -14,6 +14,9 @@ const settingService = {
 
 	async refresh(c) {
 		const settingRow = await orm(c).select().from(setting).get();
+		if (!settingRow) {
+			throw new BizError(t('databaseNotInitialized'));
+		}
 		settingRow.resendTokens = JSON.parse(settingRow.resendTokens);
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
@@ -25,10 +28,16 @@ const settingService = {
 			return c.get('setting')
 		}
 
-		const setting = await c.env.kv.get(KvConst.SETTING, { type: 'json' });
+		let settingData = await c.env.kv.get(KvConst.SETTING, { type: 'json' });
 
-		if (!setting) {
-			throw new BizError(t('databaseNotInitialized'));
+		if (!settingData) {
+			const settingRow = await orm(c).select().from(setting).get();
+			if (!settingRow) {
+				throw new BizError(t('databaseNotInitialized'));
+			}
+			settingRow.resendTokens = JSON.parse(settingRow.resendTokens);
+			settingData = settingRow;
+			await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
 		}
 
 		let domainList = c.env.domain;
@@ -46,7 +55,7 @@ const settingService = {
 		}
 
 		domainList = domainList.map(item => '@' + item);
-		setting.domainList = domainList;
+		settingData.domainList = domainList;
 
 
 		let linuxdoSwitch = c.env.linuxdo_switch;
@@ -68,16 +77,16 @@ const settingService = {
 			projectLink = true
 		}
 
-		setting.projectLink = projectLink;
+		settingData.projectLink = projectLink;
 
-		setting.linuxdoClientId = c.env.linuxdo_client_id;
-		setting.linuxdoCallbackUrl = c.env.linuxdo_callback_url;
-		setting.linuxdoSwitch = linuxdoSwitch;
+		settingData.linuxdoClientId = c.env.linuxdo_client_id;
+		settingData.linuxdoCallbackUrl = c.env.linuxdo_callback_url;
+		settingData.linuxdoSwitch = linuxdoSwitch;
 
-		setting.emailPrefixFilter = setting.emailPrefixFilter.split(",").filter(Boolean);
+		settingData.emailPrefixFilter = settingData.emailPrefixFilter.split(",").filter(Boolean);
 
-		c.set?.('setting', setting);
-		return setting;
+		c.set?.('setting', settingData);
+		return settingData;
 	},
 
 	async get(c, showSiteKey = false) {

@@ -23,11 +23,16 @@ const kvObjService = {
 			return null;
 		}
 
+		const contentType = String(obj.metadata?.contentType || '').toLowerCase();
+		const safeInline = key.startsWith('static/') && ['image/png', 'image/jpeg', 'image/gif', 'image/webp'].includes(contentType);
 		return new Response(obj.value, {
 			headers: {
-				'Content-Type': obj.metadata?.contentType || 'application/octet-stream',
-				'Content-Disposition': obj.metadata?.contentDisposition || null,
-				'Cache-Control': obj.metadata?.cacheControl || null
+				'Content-Type': safeInline ? contentType : 'application/octet-stream',
+				'Content-Disposition': safeInline ? 'inline' : (obj.metadata?.contentDisposition || 'attachment'),
+				'Cache-Control': obj.metadata?.cacheControl || 'private, max-age=300',
+				'Content-Security-Policy': "sandbox; default-src 'none'",
+				'X-Content-Type-Options': 'nosniff',
+				'Referrer-Policy': 'no-referrer'
 			}
 		});
 	},

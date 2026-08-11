@@ -23,6 +23,8 @@ import account from "../entity/account";
 import { att } from '../entity/att';
 import telegramService from './telegram-service';
 import extensionPushService from './extension-push-service';
+import { sanitizeEmailHtml } from '../utils/html-sanitizer';
+import { EMAIL_LIMITS } from '../utils/email-input-utils';
 
 const emailService = {
 
@@ -167,7 +169,10 @@ const emailService = {
 
 		const { resendTokens, r2Domain, send, domainList } = await settingService.query(c);
 
-		let { imageDataList, html } = await attService.toImageUrlHtml(c, content);
+		let { imageDataList, html } = await attService.toImageUrlHtml(c, content, userId);
+		if (imageDataList.length > EMAIL_LIMITS.maxAttachments) throw new BizError(t('imageAttLimit'), 413);
+		const imageBytes = imageDataList.reduce((total, item) => total + Number(item.size || item.content?.byteLength || 0), 0);
+		if (imageBytes > EMAIL_LIMITS.maxTotalAttachmentBytes) throw new BizError('Inline images are too large', 413);
 
 		//判断是否关闭发件功能
 		if (send === settingConst.send.CLOSE) {
@@ -309,7 +314,7 @@ const emailService = {
 		emailData.sendEmail = accountRow.email;
 		emailData.name = name;
 		emailData.subject = subject;
-		emailData.content = html;
+		emailData.content = sanitizeEmailHtml(html);
 		emailData.text = text;
 		emailData.accountId = accountId;
 		emailData.status = useCloudflareEmail ? emailConst.status.DELIVERED : emailConst.status.SENT;
@@ -922,6 +927,7 @@ const emailService = {
 			const attList = await attService.selectByEmailIds(c, emailIds);
 
 			list.forEach(emailRow => {
+				emailRow.content = sanitizeEmailHtml(emailRow.content || '');
 				const atts = attList.filter(attRow => attRow.emailId === emailRow.emailId);
 				emailRow.attList = atts;
 			});

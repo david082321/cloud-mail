@@ -11,6 +11,7 @@ import {
 	randomBase64Url,
 	sha256Base64Url
 } from '../utils/extension-utils';
+import authRateLimitService from './auth-rate-limit-service';
 
 const ACCESS_TOKEN_SECONDS = 15 * 60;
 const REFRESH_TOKEN_SECONDS = 30 * 24 * 60 * 60;
@@ -62,16 +63,26 @@ function publicDevice(row, currentDeviceId) {
 
 const extensionAuthService = {
 	async login(c, params) {
-		const email = String(params?.email || '').trim();
+		const email = String(params?.email || '').trim().toLowerCase();
 		const password = String(params?.password || '');
 		const deviceName = String(params?.deviceName || 'Chrome').trim().slice(0, 80) || 'Chrome';
-		if (!email || !password) throw new BizError('Email and password are required', 400);
+		if (!email || !password) throw new BizError('Incorrect email or password', 401);
+		await authRateLimitService.assertAllowed(c, email);
 
 		const userRow = await userService.selectByEmailIncludeDel(c, email);
-		assertActiveUser(userRow);
-		if (!await cryptoUtils.verifyPassword(password, userRow.salt, userRow.password)) {
+		let passwordValid = false;
+		if (userRow && password.length <= 128) {
+			passwordValid = await cryptoUtils.verifyPassword(password, userRow.salt, userRow.password);
+		} else {
+			await cryptoUtils.hashPassword(password.slice(0, 128) || 'invalid-password');
+		}
+		const accountActive = userRow && userRow.isDel !== isDel.DELETE && userRow.status !== userConst.status.BAN;
+		if (!passwordValid || !accountActive) {
+			await authRateLimitService.recordFailure(c, email);
 			throw new BizError('Incorrect email or password', 401);
 		}
+		await authRateLimitService.clear(c, email);
+		if (cryptoUtils.needsRehash(userRow.password)) await userService.upgradePasswordHash(c, password, userRow.userId);
 
 		const deviceId = crypto.randomUUID();
 		const refreshToken = randomBase64Url();

@@ -3,19 +3,20 @@ import roleService from '../service/role-service';
 import userContext from '../security/user-context';
 import result from '../model/result';
 import permService from '../service/perm-service';
+import { readJsonBody } from '../utils/email-input-utils';
 
 app.post('/role/add', async (c) => {
-	await roleService.add(c, await c.req.json(), userContext.getUserId(c));
+	await roleService.add(c, await readJsonBody(c), userContext.getUserId(c));
 	return c.json(result.ok());
 });
 
 app.put('/role/setDefault', async (c) => {
-	await roleService.setDefault(c, await c.req.json());
+	await roleService.setDefault(c, await readJsonBody(c));
 	return c.json(result.ok());
 });
 
 app.put('/role/set', async (c) => {
-	await roleService.setRole(c, await c.req.json());
+	await roleService.setRole(c, await readJsonBody(c));
 	return c.json(result.ok());
 });
 
@@ -38,6 +39,5 @@ app.get('/role/selectUse', async (c) => {
 	const roleList = await roleService.roleSelectUse(c);
 	return c.json(result.ok(roleList));
 });
-
 
 

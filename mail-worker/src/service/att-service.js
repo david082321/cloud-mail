@@ -6,9 +6,13 @@ import constant from '../const/constant';
 import fileUtils from '../utils/file-utils';
 import { attConst } from '../const/entity-const';
 import { parseHTML } from 'linkedom';
-import { v4 as uuidv4 } from 'uuid';
 import domainUtils from '../utils/domain-uitls';
 import settingService from "./setting-service";
+
+const SAFE_INLINE_MIME = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
+const safeFilename = value => String(value || 'attachment')
+	.replace(/[\r\n"\\/\x00-\x1F\x7F]/g, '_')
+	.slice(0, 180) || 'attachment';
 
 const attService = {
 
@@ -16,14 +20,16 @@ const attService = {
 
 		for (let attachment of attachments) {
 
+			const filename = safeFilename(attachment.filename);
+			const inline = attachment.contentId && SAFE_INLINE_MIME.has(String(attachment.mimeType || '').toLowerCase());
 			let metadate = {
-				contentType: attachment.mimeType,
+				contentType: inline ? attachment.mimeType : 'application/octet-stream',
 			}
 
-			if (!attachment.contentId) {
-				metadate.contentDisposition = `attachment;filename=${attachment.filename}`
+			if (!inline) {
+				metadate.contentDisposition = `attachment; filename="${filename}"`
 			} else {
-				metadate.contentDisposition = `inline;filename=${attachment.filename}`
+				metadate.contentDisposition = `inline; filename="${filename}"`
 				metadate.cacheControl = `max-age=259200`
 			}
 
@@ -47,7 +53,7 @@ const attService = {
 		).all();
 	},
 
-	async toImageUrlHtml(c, content) {
+	async toImageUrlHtml(c, content, userId) {
 
 		const { r2Domain } = await settingService.query(c);
 
@@ -64,8 +70,8 @@ const attService = {
 			if (src && src.startsWith('data:image')) {
 				const file = fileUtils.base64ToFile(src);
 				const buff = await file.arrayBuffer();
-				const cid = uuidv4().replace(/-/g, '');
-				const key = constant.ATTACHMENT_PREFIX + await fileUtils.getBuffHash(buff) + fileUtils.getExtFileName(file.name);
+				const cid = crypto.randomUUID().replace(/-/g, '');
+				const key = constant.ATTACHMENT_PREFIX + crypto.randomUUID() + fileUtils.getExtFileName(file.name).slice(0, 16);
 
 				img.setAttribute('src', 'cid:' + cid);
 
@@ -84,7 +90,7 @@ const attService = {
 			//邮件正文站内图片转cid附件
 			if (src && (src.startsWith(domainUtils.toOssDomain(r2Domain)) || src.startsWith('attachments/'))) {
 
-				const cid = uuidv4().replace(/-/g, '')
+				const cid = crypto.randomUUID().replace(/-/g, '')
 				img.setAttribute('src', 'cid:' + cid);
 
 				const attData = {};
@@ -115,7 +121,7 @@ const attService = {
 
 		//查询已有内嵌url图片信息
 		const keys = [...new Set(imageDataList.filter(item => !item.content).map(item => item.key))];
-		const dbImageList  = await this.selectOneByKeys(c, keys);
+		const dbImageList  = await this.selectOneByKeys(c, keys, userId);
 
 		//设置给当前附件
 		await Promise.all(imageDataList.map(async image => {
@@ -152,7 +158,7 @@ const attService = {
 
 		for (let att of attList) {
 			att.buff = fileUtils.base64ToUint8Array(att.content);
-			att.key = constant.ATTACHMENT_PREFIX + await fileUtils.getBuffHash(att.buff) + fileUtils.getExtFileName(att.filename);
+			att.key = constant.ATTACHMENT_PREFIX + crypto.randomUUID() + fileUtils.getExtFileName(att.filename).slice(0, 16);
 			const attData = { userId, accountId, emailId };
 			attData.key = att.key;
 			attData.size = att.buff.length;
@@ -167,7 +173,7 @@ const attService = {
 		for (let att of attList) {
 			await r2Service.putObj(c, att.key, att.buff, {
 				contentType: att.type,
-				contentDisposition: `attachment;filename=${att.filename}`
+				contentDisposition: `attachment; filename="${safeFilename(att.filename)}"`
 			});
 		}
 
@@ -262,11 +268,17 @@ const attService = {
 		await this.removeAttByField(c, "account_id", [accountId])
 	},
 
-	selectOneByKeys(c, keys) {
+	selectOneByKeys(c, keys, userId) {
 		if (!keys || keys.length === 0) {
 			return []
 		}
-		return orm(c).select().from(att).where(inArray(att.key, keys)).orderBy(desc(att.attId)).groupBy(att.key).all();
+		return orm(c).select().from(att).where(and(inArray(att.key, keys), eq(att.userId, userId))).orderBy(desc(att.attId)).groupBy(att.key).all();
+	},
+
+	selectAuthorizedByKey(c, key, userId, allowAll = false) {
+		const conditions = [eq(att.key, key)];
+		if (!allowAll) conditions.push(eq(att.userId, userId));
+		return orm(c).select().from(att).where(and(...conditions)).orderBy(desc(att.attId)).limit(1).get();
 	}
 };
 

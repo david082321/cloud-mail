@@ -91,6 +91,12 @@ With only one domain, you can create multiple different email addresses, similar
 
 - **File Storage**: [Cloudflare R2](https://developers.cloudflare.com/r2/)
 
+## Security configuration
+
+Apply the D1 migrations in `mail-worker/migrations` before deployment. The application now creates its settings cache on first read and no longer exposes an HTTP initialization endpoint.
+
+If Resend webhooks are enabled, run `pnpm wrangler secret put resend_webhook_secret` from `mail-worker` and enter the Resend webhook signing secret. When this secret is absent, webhook requests fail closed instead of bypassing signature verification.
+
 ## Project Structure
 
 ```
@@ -105,7 +111,6 @@ cloud-mail
 │   │   ├── error			    # Custom exceptions
 │   │   ├── hono			    # Web framework, middleware, error handling
 │   │   ├── i18n			    # Internationalization
-│   │   ├── init			    # Database and cache initialization
 │   │   ├── model			    # Response data models
 │   │   ├── security			# Authentication and authorization
 │   │   ├── service			    # Business logic layer

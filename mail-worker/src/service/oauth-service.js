@@ -6,14 +6,25 @@ import userService from "./user-service";
 import loginService from "./login-service";
 import cryptoUtils from "../utils/crypto-utils";
 import {t} from '../i18n/i18n.js';
+import { randomBase64Url, sha256Base64Url } from '../utils/extension-utils';
 
 const oauthService = {
 
 	async bindUser(c, params) {
 
-		const { email, oauthUserId, code } = params;
+		const { email, bindGrant, code } = params;
+		if (!bindGrant) throw new BizError(t('oauthGrantInvalid'), 401);
+		const grantHash = await sha256Base64Url(bindGrant);
+		const transaction = await c.env.db.prepare(`
+			UPDATE oauth_bind_transaction
+			SET used = 1
+			WHERE grant_hash = ? AND used = 0 AND expires_time > CURRENT_TIMESTAMP
+			RETURNING oauth_user_id
+		`).bind(grantHash).first();
+		if (!transaction) throw new BizError(t('oauthGrantInvalid'), 401);
 
-		const oauthRow = await this.getById(c, oauthUserId);
+		const oauthRow = await this.getById(c, transaction.oauth_user_id);
+		if (!oauthRow) throw new BizError(t('oauthGrantInvalid'), 401);
 
 		let userRow = await userService.selectByIdIncludeDel(c, oauthRow.userId);
 
@@ -25,15 +36,17 @@ const oauthService = {
 
 		userRow = await userService.selectByEmail(c, email);
 
-		orm(c).update(oauth).set({ userId: userRow.userId }).where(eq(oauth.oauthUserId, oauthUserId)).run();
+		await orm(c).update(oauth).set({ userId: userRow.userId }).where(eq(oauth.oauthUserId, transaction.oauth_user_id)).run();
 		const jwtToken = await loginService.login(c, { email, password: null }, true);
 
-		return { userInfo: oauthRow, token: jwtToken}
+		return { userInfo: this.publicUser(oauthRow), token: jwtToken}
 	},
 
 	async linuxDoLogin(c, params) {
 
-		const { code } = params;
+		const code = String(params?.code || '');
+		const codeVerifier = String(params?.codeVerifier || '');
+		if (!code || !/^[A-Za-z0-9._~-]{43,128}$/.test(codeVerifier)) throw new BizError(t('oauthGrantInvalid'), 400);
 
 		let token = '';
 		let userInfo = {}
@@ -44,6 +57,7 @@ const oauthService = {
 		reqParams.append('code', code)
 		reqParams.append('redirect_uri', c.env.linuxdo_callback_url)
 		reqParams.append('grant_type', 'authorization_code')
+		reqParams.append('code_verifier', codeVerifier)
 
 		const tokenRes = await fetch("https://connect.linux.do/oauth2/token", {
 			method: "POST",
@@ -79,11 +93,17 @@ const oauthService = {
 		const userRow = await userService.selectByIdIncludeDel(c, oauthRow.userId);
 
 		if (!userRow) {
-			return { userInfo: oauthRow, token: null }
+			const bindGrant = randomBase64Url();
+			const grantHash = await sha256Base64Url(bindGrant);
+			await c.env.db.prepare(`
+				INSERT INTO oauth_bind_transaction (grant_hash, oauth_user_id, expires_time)
+				VALUES (?, ?, datetime('now', '+10 minutes'))
+			`).bind(grantHash, oauthRow.oauthUserId).run();
+			return { userInfo: this.publicUser(oauthRow), bindGrant, token: null }
 		}
 
 		const JwtToken = await loginService.login(c, { email: userRow.email, password: null }, true);
-		return { userInfo: oauthRow, token: JwtToken }
+		return { userInfo: this.publicUser(oauthRow), bindGrant: null, token: JwtToken }
 	},
 
 	async saveUser(c, userInfo) {
@@ -113,6 +133,16 @@ const oauthService = {
 	//定时任务凌晨清除未绑定邮箱的oauth用户
 	async clearNoBindOathUser(c) {
 		await orm(c).delete(oauth).where(eq(oauth.userId, 0)).run();
+		await c.env.db.prepare(`DELETE FROM oauth_bind_transaction WHERE used = 1 OR expires_time <= CURRENT_TIMESTAMP`).run();
+	},
+
+	publicUser(row) {
+		return {
+			username: row.username,
+			name: row.name,
+			avatar: row.avatar,
+			trustLevel: row.trustLevel
+		};
 	},
 
 }

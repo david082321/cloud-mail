@@ -2,6 +2,8 @@ import app from '../hono/hono';
 import userService from '../service/user-service';
 import result from '../model/result';
 import userContext from '../security/user-context';
+import { clearSessionCookie } from '../security/session-cookie';
+import { readJsonBody } from '../utils/email-input-utils';
 
 app.get('/my/loginUserInfo', async (c) => {
 	const user = await userService.loginUserInfo(c, userContext.getUserId(c));
@@ -9,13 +11,13 @@ app.get('/my/loginUserInfo', async (c) => {
 });
 
 app.put('/my/resetPassword', async (c) => {
-	await userService.resetPassword(c, await c.req.json(), userContext.getUserId(c));
+	await userService.resetPassword(c, await readJsonBody(c), userContext.getUserId(c));
+	clearSessionCookie(c);
 	return c.json(result.ok());
 });
 
 app.delete('/my/delete', async (c) => {
 	await userService.delete(c, userContext.getUserId(c));
+	clearSessionCookie(c);
 	return c.json(result.ok());
 });
-
-

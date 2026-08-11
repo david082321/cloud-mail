@@ -51,6 +51,7 @@ watch(() => uiStore.changePreview, () => {
 })
 
 function showNotice(data) {
+	const noticeWidth = Math.min(1200, Math.max(240, Number(data.noticeWidth) || 340));
 
   if (data.notice === 1) {
     return;
@@ -63,7 +64,7 @@ function showNotice(data) {
   const style = document.createElement('style');
   style.innerHTML = `
   .custom-notice.el-notification {
-    --el-notification-width: min(${data.noticeWidth}px,calc(100% - 30px)) !important;
+    --el-notification-width: min(${noticeWidth}px,calc(100% - 30px)) !important;
   }
   `;
 
@@ -71,12 +72,11 @@ function showNotice(data) {
 
   elNotification = ElNotification({
     title: data.noticeTitle,
-    message: `<div style="width: 100%;height: 100%;">${data.noticeContent}</div>`,
+    message: data.noticeContent,
     type: data.noticeType === 'none' ? '' : data.noticeType,
     duration: data.noticeDuration,
     position: data.noticePosition,
     offset: data.noticeOffset,
-    dangerouslyUseHTMLString: true,
     customClass: 'custom-notice'
   })
 }

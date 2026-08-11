@@ -9,6 +9,10 @@ export function cvtR2Url(key) {
         return key
     }
 
+    if (key.startsWith('attachments/')) {
+        return `/api/oss/${key.split('/').map(encodeURIComponent).join('/')}`
+    }
+
     const { settings } = useSettingStore();
 
     let domain = settings.r2Domain
@@ -28,18 +32,5 @@ export function cvtR2Url(key) {
 }
 
 export function toOssDomain(domain) {
-
-    if (!domain) {
-        return ''
-    }
-
-    if (!domain.startsWith('http')) {
-        return 'https://' + domain
-    }
-
-    if (domain.endsWith("/")) {
-        domain = domain.slice(0, -1);
-    }
-
-    return domain
+    return '/api/oss'
 }
