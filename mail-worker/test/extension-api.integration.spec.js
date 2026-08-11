@@ -195,6 +195,64 @@ describe('Chrome extension API', () => {
 		expect((await endedSession.json()).data).toBeNull();
 	});
 
+	it('lists trash by mailbox or all mailboxes and safely restores or permanently deletes owned mail', async () => {
+		const loginResponse = await rawApi('/login', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', Origin: 'http://example.com' },
+			body: JSON.stringify({ email: 'extension@example.com', password: 'extension-test-password' })
+		});
+		expect(loginResponse.status).toBe(200);
+		const cookie = loginResponse.headers.get('set-cookie').split(';')[0];
+		const user = await env.db.prepare(`SELECT user_id FROM user WHERE email = ?`).bind('extension@example.com').first();
+		const firstAccount = await env.db.prepare(`SELECT account_id FROM account WHERE email = ?`).bind('extension@example.com').first();
+
+		await env.db.prepare(`
+			INSERT INTO account (email, name, user_id, is_del)
+			VALUES (?, ?, ?, 0)
+		`).bind('extension-secondary@example.com', 'Secondary', user.user_id).run();
+		const secondAccount = await env.db.prepare(`SELECT account_id FROM account WHERE email = ?`).bind('extension-secondary@example.com').first();
+
+		const firstDeleted = await env.db.prepare(`
+			INSERT INTO email (send_email, name, account_id, user_id, subject, text, type, status, is_del)
+			VALUES ('sender@example.net', 'Sender', ?, ?, 'First trash', 'first', 0, 0, 1)
+			RETURNING email_id
+		`).bind(firstAccount.account_id, user.user_id).first();
+		const secondDeleted = await env.db.prepare(`
+			INSERT INTO email (send_email, name, account_id, user_id, subject, text, type, status, is_del)
+			VALUES ('extension-secondary@example.com', 'Secondary', ?, ?, 'Second trash', 'second', 1, 2, 1)
+			RETURNING email_id
+		`).bind(secondAccount.account_id, user.user_id).first();
+
+		const firstOnly = await rawApi(`/email/trash?accountId=${firstAccount.account_id}&allReceive=0&emailId=0&timeSort=0&size=50`, {
+			headers: { Cookie: cookie }
+		});
+		expect(firstOnly.status).toBe(200);
+		expect((await firstOnly.json()).data.list.map(item => item.emailId)).toContain(firstDeleted.email_id);
+
+		const allMailboxes = await rawApi(`/email/trash?accountId=${firstAccount.account_id}&allReceive=1&emailId=0&timeSort=0&size=50`, {
+			headers: { Cookie: cookie }
+		});
+		expect(allMailboxes.status).toBe(200);
+		const allIds = (await allMailboxes.json()).data.list.map(item => item.emailId);
+		expect(allIds).toEqual(expect.arrayContaining([firstDeleted.email_id, secondDeleted.email_id]));
+
+		const restored = await rawApi('/email/restore', {
+			method: 'PUT',
+			headers: { Cookie: cookie, Origin: 'http://example.com', 'Content-Type': 'application/json' },
+			body: JSON.stringify({ emailIds: [firstDeleted.email_id] })
+		});
+		expect(restored.status).toBe(200);
+		expect((await env.db.prepare(`SELECT is_del FROM email WHERE email_id = ?`).bind(firstDeleted.email_id).first()).is_del).toBe(0);
+
+		const permanentlyDeleted = await rawApi(`/email/permanent-delete?emailIds=${firstDeleted.email_id},${secondDeleted.email_id}`, {
+			method: 'DELETE',
+			headers: { Cookie: cookie, Origin: 'http://example.com' }
+		});
+		expect(permanentlyDeleted.status).toBe(200);
+		expect(await env.db.prepare(`SELECT email_id FROM email WHERE email_id = ?`).bind(firstDeleted.email_id).first()).not.toBeNull();
+		expect(await env.db.prepare(`SELECT email_id FROM email WHERE email_id = ?`).bind(secondDeleted.email_id).first()).toBeNull();
+	});
+
 	it('requires a Turnstile token when browser sign-in verification is enabled', async () => {
 		await env.db.prepare(`
 			UPDATE setting

@@ -137,14 +137,139 @@ const emailService = {
 		return { list, total: totalRow.total, latestEmail };
 	},
 
+	async trashList(c, params, userId) {
+
+		let { emailId, accountId, size, timeSort, allReceive } = params;
+
+		size = Number(size);
+		emailId = Number(emailId);
+		timeSort = Number(timeSort);
+		accountId = Number(accountId);
+		allReceive = Number(allReceive);
+
+		if (!Number.isFinite(size) || size <= 0) size = 50;
+		if (size > 50) size = 50;
+
+		if (!emailId) {
+			emailId = timeSort ? 0 : 9999999999;
+		}
+
+		if (isNaN(allReceive)) {
+			const accountRow = await accountService.selectById(c, accountId);
+			allReceive = accountRow?.allReceive || 0;
+		}
+
+		const accountCondition = allReceive ? eq(1, 1) : eq(email.accountId, accountId);
+		const baseConditions = [
+			accountCondition,
+			eq(email.userId, userId),
+			eq(email.isDel, isDel.DELETE),
+			eq(account.isDel, isDel.NORMAL)
+		];
+
+		const query = orm(c)
+			.select({
+				...email,
+				starId: star.starId
+			})
+			.from(email)
+			.leftJoin(
+				star,
+				and(
+					eq(star.emailId, email.emailId),
+					eq(star.userId, userId)
+				)
+			)
+			.leftJoin(account, eq(account.accountId, email.accountId))
+			.where(and(
+				...baseConditions,
+				timeSort ? gt(email.emailId, emailId) : lt(email.emailId, emailId)
+			));
+
+		if (timeSort) {
+			query.orderBy(asc(email.emailId));
+		} else {
+			query.orderBy(desc(email.emailId));
+		}
+
+		const listQuery = query.limit(size).all();
+		const totalQuery = orm(c)
+			.select({ total: count() })
+			.from(email)
+			.leftJoin(account, eq(account.accountId, email.accountId))
+			.where(and(...baseConditions))
+			.get();
+		const latestEmailQuery = orm(c)
+			.select({ ...email })
+			.from(email)
+			.leftJoin(account, eq(account.accountId, email.accountId))
+			.where(and(...baseConditions))
+			.orderBy(desc(email.emailId))
+			.limit(1)
+			.get();
+
+		let [list, totalRow, latestEmail] = await Promise.all([listQuery, totalQuery, latestEmailQuery]);
+
+		list = list.map(item => ({
+			...item,
+			isStar: item.starId != null ? 1 : 0
+		}));
+
+		await this.emailAddAtt(c, list);
+
+		if (!latestEmail) {
+			latestEmail = {
+				emailId: 0,
+				accountId,
+				userId
+			};
+		}
+
+		return { list, total: totalRow.total, latestEmail };
+	},
+
 	async delete(c, params, userId) {
-		const { emailIds } = params;
-		const emailIdList = emailIds.split(',').map(Number);
+		const emailIdList = parseEmailIds(params.emailIds);
 		await orm(c).update(email).set({ isDel: isDel.DELETE }).where(
 			and(
 				eq(email.userId, userId),
 				inArray(email.emailId, emailIdList)))
 			.run();
+	},
+
+	async restore(c, params, userId) {
+		const emailIdList = parseEmailIds(params.emailIds);
+		await orm(c).update(email).set({ isDel: isDel.NORMAL }).where(
+			and(
+				eq(email.userId, userId),
+				eq(email.isDel, isDel.DELETE),
+				inArray(email.emailId, emailIdList)
+			)
+		).run();
+	},
+
+	async permanentDelete(c, params, userId) {
+		const requestedIds = parseEmailIds(params.emailIds);
+		const ownedRows = await orm(c)
+			.select({ emailId: email.emailId })
+			.from(email)
+			.where(and(
+				eq(email.userId, userId),
+				eq(email.isDel, isDel.DELETE),
+				inArray(email.emailId, requestedIds)
+			))
+			.all();
+		const emailIds = ownedRows.map(row => row.emailId);
+
+		if (emailIds.length === 0) return;
+
+		await attService.removeByEmailIds(c, emailIds);
+		await starService.removeByEmailIds(c, emailIds);
+		await orm(c).delete(email).where(and(
+			eq(email.userId, userId),
+			eq(email.isDel, isDel.DELETE),
+			inArray(email.emailId, emailIds)
+		)).run();
 	},
 
 	receive(c, params, cidAttList, r2domain) {
@@ -1006,5 +1131,18 @@ const emailService = {
 		await orm(c).update(email).set({ unread: emailConst.unread.READ }).where(and(eq(email.userId, userId), inArray(email.emailId, emailIds)));
 	}
 };
+
+function parseEmailIds(value) {
+	const values = Array.isArray(value) ? value : String(value ?? '').split(',');
+	const ids = [...new Set(values
+		.map(Number)
+		.filter(id => Number.isSafeInteger(id) && id > 0))];
+
+	if (ids.length === 0) {
+		throw new BizError(t('invalidEmailIds'), 400);
+	}
+
+	return ids;
+}
 
 export default emailService;

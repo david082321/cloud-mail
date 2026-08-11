@@ -4,6 +4,7 @@ const en = {
 	regDisabled: 'Sign up is disabled',
 	emptyEmail: 'Email cannot be empty',
 	notEmail: 'Invalid email',
+	invalidEmailIds: 'Invalid email IDs',
 	notExistDomain: 'Email domain does not exist',
 	isDelAccount: 'This Email has been deleted',
 	isRegAccount: 'This Email is already registered',

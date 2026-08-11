@@ -4,6 +4,7 @@ const zh = {
 	regDisabled: '注册功能已关闭',
 	emptyEmail: '邮箱不能为空',
 	notEmail: '非法邮箱',
+	invalidEmailIds: '邮件编号无效',
 	notExistDomain: '不存在的邮箱域名',
 	isDelAccount: '该邮箱已被注销',
 	isRegAccount: '该邮箱已被注册',

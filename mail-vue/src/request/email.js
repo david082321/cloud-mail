@@ -8,6 +8,18 @@ export function emailDelete(emailIds) {
     return http.delete('/email/delete?emailIds=' + emailIds)
 }
 
+export function trashList(accountId, allReceive, emailId, timeSort, size) {
+    return http.get('/email/trash', {params: {accountId, allReceive, emailId, timeSort, size}})
+}
+
+export function emailRestore(emailIds) {
+    return http.put('/email/restore', {emailIds})
+}
+
+export function emailPermanentDelete(emailIds) {
+    return http.delete('/email/permanent-delete?emailIds=' + emailIds)
+}
+
 export function emailLatest(emailId, accountId, allReceive) {
     return http.get('/email/latest', {params: {emailId, accountId, allReceive}, noMsg: true, timeout: 35 * 1000})
 }

@@ -2,7 +2,10 @@
   <div class="box">
     <div class="header-actions">
       <Icon class="icon" icon="material-symbols-light:arrow-back-ios-new" width="20" height="20" @click="handleBack"/>
-      <Icon v-perm="'email:delete'" class="icon" icon="uiw:delete" width="16" height="16" @click="handleDelete"/>
+      <Icon v-if="emailStore.contentData.delType === 'trash'" v-perm="'email:delete'" class="icon"
+            icon="material-symbols:restore" width="20" height="20" :title="$t('restore')" @click="handleRestore"/>
+      <Icon v-perm="'email:delete'" class="icon" icon="uiw:delete" width="16" height="16"
+            :title="emailStore.contentData.delType === 'trash' ? $t('deletePermanently') : $t('delete')" @click="handleDelete"/>
       <span class="star" v-if="emailStore.contentData.showStar">
         <Icon class="icon" @click="changeStar" v-if="email.isStar" icon="fluent-color:star-16" width="20" height="20"/>
         <Icon class="icon" @click="changeStar" v-else icon="solar:star-line-duotone" width="18" height="18"/>
@@ -78,7 +81,7 @@ import ShadowHtml from '@/components/shadow-html/index.vue'
 import {reactive, ref, watch, onMounted, onUnmounted} from "vue";
 import {useRouter} from 'vue-router'
 import {ElMessage, ElMessageBox} from 'element-plus'
-import {emailDelete, emailRead} from "@/request/email.js";
+import {emailDelete, emailPermanentDelete, emailRead, emailRestore} from "@/request/email.js";
 import {Icon} from "@iconify/vue";
 import {useEmailStore} from "@/store/email.js";
 import {useAccountStore} from "@/store/account.js";
@@ -184,7 +187,7 @@ const handleBack = () => {
 }
 
 const handleDelete = () => {
-  ElMessageBox.confirm(t('delEmailConfirm'), {
+  ElMessageBox.confirm(t(emailStore.contentData.delType === 'trash' ? 'permanentDeleteOneEmailConfirm' : 'delEmailConfirm'), {
     confirmButtonText: t('confirm'),
     cancelButtonText: t('cancel'),
     type: 'warning'
@@ -193,6 +196,15 @@ const handleDelete = () => {
       emailDelete(email.emailId).then(() => {
         ElMessage({
           message: t('delSuccessMsg'),
+          type: 'success',
+          plain: true,
+        })
+        emailStore.deleteIds = [email.emailId]
+      })
+    } else if (emailStore.contentData.delType === 'trash') {
+      emailPermanentDelete(email.emailId).then(() => {
+        ElMessage({
+          message: t('permanentDeleteSuccessMsg'),
           type: 'success',
           plain: true,
         })
@@ -211,6 +223,27 @@ const handleDelete = () => {
     }
 
     router.back()
+  })
+}
+
+const handleRestore = () => {
+  ElMessageBox.confirm(t('restoreOneEmailConfirm'), {
+    confirmButtonText: t('confirm'),
+    cancelButtonText: t('cancel'),
+    type: 'warning'
+  }).then(() => {
+    emailRestore([email.emailId]).then(() => {
+      ElMessage({
+        message: t('restoreSuccessMsg'),
+        type: 'success',
+        plain: true,
+      })
+      emailStore.emailScroll?.refreshList()
+      emailStore.sendScroll?.refreshList()
+      emailStore.starScroll?.refreshList()
+      emailStore.deleteIds = [email.emailId]
+      router.back()
+    })
   })
 }
 </script>

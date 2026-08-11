@@ -21,6 +21,11 @@
           <Icon icon="ep:document" width="19" height="19" />
           <span class="menu-name" style="margin-left: 22px">{{$t('drafts')}}</span>
         </el-menu-item>
+        <el-menu-item @click="router.push({name: 'trash'})" index="trash"
+                      :class="route.meta.name === 'trash' ? 'choose-item' : ''">
+          <Icon icon="solar:trash-bin-trash-linear" width="20" height="20" />
+          <span class="menu-name" style="margin-left: 21px">{{$t('trash')}}</span>
+        </el-menu-item>
         <el-menu-item @click="router.push({name: 'star'})" index="star"
                       :class="route.meta.name === 'star' ? 'choose-item' : ''">
           <Icon icon="solar:star-line-duotone" width="20" height="20" />

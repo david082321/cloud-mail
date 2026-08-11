@@ -12,8 +12,13 @@
 
         <slot name="first"></slot>
         <Icon class="icon reload" icon="ion:reload" width="18" height="18" @click="refresh"/>
+        <Icon v-perm="'email:delete'" class="icon" icon="material-symbols:restore" width="20" height="20"
+              v-if="props.type === 'trash' && getSelectedMailsIds().length > 0"
+              :title="t('restore')"
+              @click="handleRestore"/>
         <Icon v-perm="'email:delete'" class="icon delete" icon="uiw:delete" width="16" height="16"
               v-if="getSelectedMailsIds().length > 0"
+              :title="props.type === 'trash' ? t('deletePermanently') : t('delete')"
               @click="handleDelete"/>
         <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-read-20-regular" width="21" height="21"
               v-if="getSelectedMailsIds().length > 0 && showUnread"
@@ -219,11 +224,19 @@
               </div>
             </template>
           </el-dropdown-item>
-          <el-dropdown-item @click="rightDelete(rightClickEmail.emailId)">
+          <el-dropdown-item v-if="props.type === 'trash'" @click="rightRestore(rightClickEmail.emailId)">
+            <template #default>
+              <div class="right-dropdown-item">
+                <Icon icon="material-symbols:restore" width="20" height="20" />
+                <span>{{t('restore')}}</span>
+              </div>
+            </template>
+          </el-dropdown-item>
+          <el-dropdown-item v-perm="'email:delete'" @click="rightDelete(rightClickEmail.emailId)">
             <template #default>
               <div class="right-dropdown-item">
                 <Icon icon="uiw:delete" width="16" height="20" style="margin-left: 1px;margin-right: 3px" />
-                <span>{{t('delete')}}</span>
+                <span>{{t(props.type === 'trash' ? 'deletePermanently' : 'delete')}}</span>
               </div>
             </template>
           </el-dropdown-item>
@@ -250,6 +263,7 @@ import { useScroll } from '@vueuse/core'
 const props = defineProps({
   getEmailList: Function,
   emailDelete: Function,
+  emailRestore: Function,
   emailRead: Function,
   starAdd: Function,
   starCancel: Function,
@@ -636,15 +650,15 @@ function localRead(emailIds) {
 
 function rightDelete(emailId) {
 
-  if (props.type === 'all-email') {
-    ElMessageBox.confirm(t('delOneEmailConfirm'), {
+  if (props.type === 'all-email' || props.type === 'trash') {
+    ElMessageBox.confirm(t(props.type === 'trash' ? 'permanentDeleteOneEmailConfirm' : 'delOneEmailConfirm'), {
       confirmButtonText: t('confirm'),
       cancelButtonText: t('cancel'),
       type: 'warning'
     }).then(() => {
       props.emailDelete([emailId]).then(() => {
         ElMessage({
-          message: t('delSuccessMsg'),
+          message: t(props.type === 'trash' ? 'permanentDeleteSuccessMsg' : 'delSuccessMsg'),
           type: 'success',
           plain: true
         })
@@ -660,6 +674,24 @@ function rightDelete(emailId) {
       plain: true
     })
     emailStore.deleteIds = [emailId];
+  })
+}
+
+function rightRestore(emailId) {
+  ElMessageBox.confirm(t('restoreOneEmailConfirm'), {
+    confirmButtonText: t('confirm'),
+    cancelButtonText: t('cancel'),
+    type: 'warning'
+  }).then(() => {
+    props.emailRestore([emailId]).then(() => {
+      ElMessage({
+        message: t('restoreSuccessMsg'),
+        type: 'success',
+        plain: true
+      })
+      refreshRestoredMailboxes()
+      emailStore.deleteIds = [emailId]
+    })
   })
 }
 
@@ -686,7 +718,7 @@ async function copyCode(code) {
 }
 
 function handleDelete() {
-  ElMessageBox.confirm(t('delEmailsConfirm'), {
+  ElMessageBox.confirm(t(props.type === 'trash' ? 'permanentDeleteEmailsConfirm' : 'delEmailsConfirm'), {
     confirmButtonText: t('confirm'),
     cancelButtonText: t('cancel'),
     type: 'warning'
@@ -701,13 +733,38 @@ function handleDelete() {
     const emailIds = getSelectedMailsIds();
     props.emailDelete(emailIds).then(() => {
       ElMessage({
-        message: t('delSuccessMsg'),
+        message: t(props.type === 'trash' ? 'permanentDeleteSuccessMsg' : 'delSuccessMsg'),
         type: 'success',
         plain: true
       })
       emailStore.deleteIds = emailIds;
     })
   })
+}
+
+function handleRestore() {
+  ElMessageBox.confirm(t('restoreEmailsConfirm'), {
+    confirmButtonText: t('confirm'),
+    cancelButtonText: t('cancel'),
+    type: 'warning'
+  }).then(() => {
+    const emailIds = getSelectedMailsIds()
+    props.emailRestore(emailIds).then(() => {
+      ElMessage({
+        message: t('restoreSuccessMsg'),
+        type: 'success',
+        plain: true
+      })
+      refreshRestoredMailboxes()
+      emailStore.deleteIds = emailIds
+    })
+  })
+}
+
+function refreshRestoredMailboxes() {
+  emailStore.emailScroll?.refreshList()
+  emailStore.sendScroll?.refreshList()
+  emailStore.starScroll?.refreshList()
 }
 
 function deleteEmail(emailIds) {
