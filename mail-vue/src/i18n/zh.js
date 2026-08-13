@@ -8,6 +8,7 @@ const zh = {
     analytics: '分析页',
     allUsers: '用户列表',
     allMail: '全部邮件',
+    allMailboxes: '所有邮箱',
     permissions: '权限控制',
     inviteCode: '注册密钥',
     SystemSettings: '系统设置',

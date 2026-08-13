@@ -8,6 +8,7 @@ const en = {
     analytics: 'Analytics',
     allUsers: 'All Users',
     allMail: 'All Mail',
+    allMailboxes: 'All mailboxes',
     permissions: 'Role',
     inviteCode: 'Invite Code',
     SystemSettings: 'System Settings',

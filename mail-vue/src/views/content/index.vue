@@ -106,7 +106,7 @@ const showPreview = ref(false)
 const srcList = reactive([])
 
 const { t } = useI18n()
-watch(() => accountStore.currentAccountId, () => {
+watch(() => [accountStore.currentAccountId, accountStore.currentAccount.allReceive], () => {
   handleBack()
 })
 

@@ -54,7 +54,7 @@ onMounted(() => {
 })
 
 
-watch(() => accountStore.currentAccountId, () => {
+watch(() => [accountStore.currentAccountId, accountStore.currentAccount.allReceive], () => {
   scroll.value.refreshList();
 })
 

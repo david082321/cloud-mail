@@ -6,8 +6,16 @@
     </div>
     <el-scrollbar class="scrollbar" ref="scrollbarRef">
       <div v-infinite-scroll="getAccountList" :infinite-scroll-distance="600" :infinite-scroll-immediate="false">
+        <el-card v-if="accounts.length > 0" class="item all-mailboxes-item" :class="allMailboxesSelected ? 'item-choose' : ''"
+                 role="button" tabindex="0" @click="selectAllMailboxes"
+                 @keydown.enter.prevent="selectAllMailboxes" @keydown.space.prevent="selectAllMailboxes">
+          <div class="all-mailboxes-content">
+            <Icon icon="fluent:mail-inbox-all-24-filled" width="23" height="23" color="#23c4f1"/>
+            <span>{{ $t('allMailboxes') }}</span>
+          </div>
+        </el-card>
         <el-card class="item" :class="itemBg(item.accountId)" v-for="(item, index) in accounts" :key="item.accountId"
-                 @click="changeAccount(item)">
+                 @click="selectAccount(item)">
           <div class="account">
             {{ item.email }}
           </div>
@@ -140,7 +148,6 @@ import {sleep} from "@/utils/time-utils.js"
 import {isEmail} from "@/utils/verify-utils.js";
 import {useSettingStore} from "@/store/setting.js";
 import {useAccountStore} from "@/store/account.js";
-import {useEmailStore} from "@/store/email.js";
 import {useUserStore} from "@/store/user.js";
 import {hasPerm} from "@/perm/perm.js"
 import {useI18n} from "vue-i18n";
@@ -150,7 +157,6 @@ const {t} = useI18n();
 const userStore = useUserStore();
 const accountStore = useAccountStore();
 const settingStore = useSettingStore();
-const emailStore = useEmailStore();
 const showAdd = ref(false)
 const addLoading = ref(false);
 const domainList = computed(() => settingStore.domainList)
@@ -158,6 +164,7 @@ const accounts = reactive([])
 const noLoading = ref(false)
 const loading = ref(false)
 const followLoading = ref(false);
+const allReceiveLoading = ref(false)
 const verifyShow = ref(false)
 const setNameShow = ref(false)
 const setNameLoading = ref(false)
@@ -180,6 +187,7 @@ const queryParams = {
 }
 
 const mySelect = ref()
+const allMailboxesSelected = computed(() => accountStore.currentAccount?.allReceive === AccountAllReceiveEnum.ENABLED)
 
 if (hasPerm('account:query')) {
   getAccountList()
@@ -270,25 +278,36 @@ function openSetName(accountItem) {
   setNameShow.value = true
 }
 
-function setAllReceive(account) {
-  let allReceiveAccount = accounts.find(account => account.allReceive === AccountAllReceiveEnum.ENABLED);
-  if (allReceiveAccount && allReceiveAccount.accountId !== account.accountId) allReceiveAccount.allReceive = AccountAllReceiveEnum.DISABLED;
-  account.allReceive = account.allReceive === AccountAllReceiveEnum.DISABLED ? AccountAllReceiveEnum.ENABLED : AccountAllReceiveEnum.DISABLED;
-  accountSetAllReceive(account.accountId).catch(() => {
-    account.allReceive = account.allReceive === AccountAllReceiveEnum.DISABLED ? AccountAllReceiveEnum.ENABLED : AccountAllReceiveEnum.DISABLED;
-    if (allReceiveAccount) allReceiveAccount.allReceive = AccountAllReceiveEnum.ENABLED;
-  }).then(() => {
-    if (account.allReceive === AccountAllReceiveEnum.ENABLED) {
-      ElMessage({
-        message: t('setSuccess'),
-        type: 'success',
-        plain: true,
-      })
-    }
-    changeAccount(account);
-    emailStore.emailScroll?.refreshList();
-    emailStore.sendScroll?.refreshList();
-  })
+async function updateAllReceive(account, enabled) {
+  if (allReceiveLoading.value) return false
+
+  allReceiveLoading.value = true
+  try {
+    await accountSetAllReceive(account.accountId)
+    accounts.forEach(item => {
+      item.allReceive = AccountAllReceiveEnum.DISABLED
+    })
+    account.allReceive = enabled ? AccountAllReceiveEnum.ENABLED : AccountAllReceiveEnum.DISABLED
+    return true
+  } catch (error) {
+    return false
+  } finally {
+    allReceiveLoading.value = false
+  }
+}
+
+async function setAllReceive(account) {
+  const enabled = account.allReceive !== AccountAllReceiveEnum.ENABLED
+  if (!await updateAllReceive(account, enabled)) return
+
+  if (enabled) {
+    ElMessage({
+      message: t('setSuccess'),
+      type: 'success',
+      plain: true,
+    })
+  }
+  changeAccount(account)
 }
 
 
@@ -297,7 +316,7 @@ function showNullSetting(item) {
 }
 
 function itemBg(accountId) {
-  return accountStore.currentAccountId === accountId ? 'item-choose' : ''
+  return !allMailboxesSelected.value && accountStore.currentAccountId === accountId ? 'item-choose' : ''
 }
 
 
@@ -341,6 +360,26 @@ function refresh() {
 function changeAccount(account) {
   accountStore.currentAccountId = account.accountId
   accountStore.currentAccount = account
+}
+
+async function selectAccount(account) {
+  if (account.allReceive === AccountAllReceiveEnum.ENABLED) {
+    if (!await updateAllReceive(account, false)) return
+  }
+  changeAccount(account)
+}
+
+async function selectAllMailboxes() {
+  let targetAccount = accounts.find(item => item.allReceive === AccountAllReceiveEnum.ENABLED)
+      || accounts.find(item => item.accountId === accountStore.currentAccountId)
+      || accounts[0]
+
+  if (!targetAccount) return
+
+  if (targetAccount.allReceive !== AccountAllReceiveEnum.ENABLED) {
+    if (!await updateAllReceive(targetAccount, true)) return
+  }
+  changeAccount(targetAccount)
 }
 
 function add() {
@@ -410,7 +449,12 @@ function getAccountList() {
       noLoading.value = true
     }
     if (accounts.length === 0) {
-      accountStore.currentAccount = list[0]
+      const currentAccount = list.find(item => item.accountId === accountStore.currentAccountId)
+      if (currentAccount) {
+        accountStore.currentAccount = currentAccount
+      } else if (!accountStore.currentAccount?.accountId && list[0]) {
+        changeAccount(list[0])
+      }
     }
 
     accounts.push(...list)
@@ -614,6 +658,19 @@ path[fill="#ffdda1"] {
 
     :deep(.el-card__body) {
       padding: 0;
+    }
+  }
+
+  .all-mailboxes-item {
+    padding-top: 13px;
+    padding-bottom: 13px;
+
+    .all-mailboxes-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 23px;
+      font-weight: 600;
     }
   }
 

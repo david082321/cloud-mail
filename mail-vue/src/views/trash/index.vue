@@ -39,7 +39,7 @@ const params = reactive({
   timeSort: 0
 })
 
-watch(() => accountStore.currentAccountId, () => {
+watch(() => [accountStore.currentAccountId, accountStore.currentAccount.allReceive], () => {
   trashScroll.value.refreshList()
 })
 
